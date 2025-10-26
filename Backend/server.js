@@ -76,7 +76,7 @@ import userRoutes from "./routes/userRoutes.js";
 import messRoutes from "./routes/messRoutes.js";
 import orderRoutes from "./routes/OrderRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
-import messRequestRoutes from "./routes/MessRequestRoutes.js";
+import messRequestRoutes from "./routes/messRequestRoutes.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
 import ownerStatsRoutes from "./routes/ownerStatsRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
