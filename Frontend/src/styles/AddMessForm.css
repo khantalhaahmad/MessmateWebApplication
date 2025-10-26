@@ -1,0 +1,136 @@
+/* ===============================
+   PAGE CONTAINER
+=============================== */
+.addmess-page {
+  background-color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 120px; /* ✅ Keeps below navbar */
+  padding-bottom: 40px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* ===============================
+   FORM WRAPPER CARD
+=============================== */
+.addmess-wrapper {
+  background-color: #fff;
+  border-radius: 14px;
+  padding: 40px 50px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 520px;
+  text-align: left;
+  transition: all 0.3s ease-in-out;
+}
+
+.addmess-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* ===============================
+   TITLE
+=============================== */
+.addmess-title {
+  text-align: center;
+  color: #ff4d4d;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* ===============================
+   FORM ELEMENTS
+=============================== */
+.addmess-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.addmess-form label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.addmess-form input,
+.addmess-form select {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  background-color: #fafafa;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.addmess-form input:focus,
+.addmess-form select:focus {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 6px rgba(255, 77, 77, 0.4);
+  background-color: #fff;
+}
+
+/* ===============================
+   FILE INPUT STYLING
+=============================== */
+.addmess-form input[type="file"] {
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.addmess-form input[type="file"]::-webkit-file-upload-button {
+  background-color: #ff4d4d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.addmess-form input[type="file"]::-webkit-file-upload-button:hover {
+  background-color: #e63946;
+}
+
+/* ===============================
+   SUBMIT BUTTON
+=============================== */
+.submit-btn {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #e63946;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255, 77, 77, 0.3);
+}
+
+/* ===============================
+   RESPONSIVE DESIGN
+=============================== */
+@media (max-width: 600px) {
+  .addmess-wrapper {
+    max-width: 90%;
+    padding: 30px 25px;
+  }
+
+  .addmess-title {
+    font-size: 1.5rem;
+  }
+}

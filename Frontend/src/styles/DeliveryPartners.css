@@ -1,0 +1,545 @@
+/* ===========================================================
+   GLOBAL
+=========================================================== */
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background-color: #fff;
+  color: #333;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ===========================================================
+   HERO SECTION (3D + OVERLAY)
+=========================================================== */
+.hero-section {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at 30% 50%, #ff4d4d30, #ffffff 90%);
+}
+
+/* Hero image full screen */
+.hero-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.8);
+  animation: zoomIn 12s ease-in-out infinite alternate;
+}
+
+/* Overlay with gradient glow */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.65),
+    rgba(0, 0, 0, 0.2)
+  );
+  z-index: 1;
+}
+
+
+/* Hero text left aligned inside image */
+.hero-text {
+  position: absolute;
+  z-index: 3;
+  color: #fff;
+  left: 6%;
+  max-width: 480px;
+  animation: fadeUp 1.2s ease;
+}
+
+.hero-text h1 {
+  font-size: 52px;
+  font-weight: 800;
+  margin-bottom: 18px;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
+}
+
+.hero-text p {
+  font-size: 18px;
+  line-height: 1.7;
+  color: #f5f5f5;
+}
+
+/* ============================= */
+/* Right side form floating card */
+/* ============================= */
+.hero-right {
+  position: absolute;         /* ✅ Position it over the hero section */
+  right: 8%;                  /* ✅ Shift to right side */
+  top: 50%;                   /* ✅ Vertically center */
+  transform: translateY(-50%);/* ✅ Perfect centering */
+  z-index: 4;                 /* Keep above overlay/image */
+}
+
+.hero-form {
+  background: #fff;
+  padding: 40px 35px;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  width: 380px;
+  transform: translateY(30px);
+  animation: slideInRight 1.2s ease;
+  transition: transform 0.4s ease;
+}
+
+.hero-form:hover {
+  transform: translateY(20px) scale(1.02);
+}
+
+.hero-form h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.hero-form p {
+  font-size: 15px;
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.hero-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+.hero-form input:focus {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 5px rgba(255, 77, 77, 0.5);
+  outline: none;
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 18px;
+}
+
+.apply-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff4d4d, #ff6b6b);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-btn:hover:not(.disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(255, 77, 77, 0.4);
+}
+
+.apply-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.store-links {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 18px;
+}
+
+.store-links img {
+  width: 120px;
+  transition: transform 0.2s;
+}
+
+.store-links img:hover {
+  transform: scale(1.1);
+}
+
+/* ===========================================================
+   WHY JOIN (3D Hover Cards)
+=========================================================== */
+.why-join {
+  text-align: center;
+  padding: 90px 40px;
+  background: #fff;
+}
+
+.why-join h2 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 15px;
+}
+
+.why-join p {
+  color: #666;
+  max-width: 650px;
+  margin: 0 auto 50px;
+  font-size: 16px;
+}
+
+.benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 40px;
+}
+
+.benefit-card {
+  background: #f9fafb;
+  border-radius: 18px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.4s ease, box-shadow 0.3s ease;
+}
+
+.benefit-card:hover {
+  transform: translateY(-10px) rotate3d(1, 1, 0, 6deg);
+  box-shadow: 0 12px 30px rgba(255, 77, 77, 0.25);
+}
+
+.benefit-card img {
+  width: 60px;
+  margin-bottom: 18px;
+}
+
+.benefit-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.benefit-card p {
+  color: #555;
+}
+
+/* ===========================================================
+   STEPS (Animated Floating Cards)
+=========================================================== */
+.steps-section {
+  background: linear-gradient(to bottom, #fff, #fafafa);
+  text-align: center;
+  padding: 90px 40px;
+}
+
+.steps-section h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 50px;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 35px;
+}
+
+.step-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  width: 250px;
+  transition: all 0.4s ease;
+  animation: floatCard 6s ease-in-out infinite alternate;
+}
+
+@keyframes floatCard {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-10px);
+  }
+}
+
+.step-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(255, 77, 77, 0.2);
+}
+
+.step-card img {
+  width: 65px;
+  margin-bottom: 15px;
+}
+
+.step-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* ===========================================================
+   TESTIMONIAL (Glassmorphism)
+=========================================================== */
+.testimonials {
+  padding: 100px 40px;
+  text-align: center;
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+}
+
+.testimonial-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 25px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px 35px;
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.testimonial-card img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ff4d4d;
+}
+
+.testimonial-card strong {
+  color: #ff4d4d;
+  font-weight: 700;
+}
+
+/* ===========================================================
+   KNOW MORE (Video Play Overlay)
+=========================================================== */
+.know-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 90px 40px;
+  background: #fff;
+}
+
+.video-section {
+  position: relative;
+  max-width: 480px;
+}
+
+.video-section img {
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+}
+
+.play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ff4d4d;
+  color: white;
+  font-size: 28px;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 25px rgba(255, 77, 77, 0.4);
+}
+
+.play-button:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.text-section {
+  max-width: 500px;
+}
+
+.text-section h2 {
+  font-size: 28px;
+  margin-bottom: 15px;
+}
+
+.text-section p {
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.faq-btn,
+.contact-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.faq-btn {
+  background: #ff4d4d;
+  color: #fff;
+}
+
+.faq-btn:hover {
+  background: #e03e3e;
+}
+
+.contact-btn {
+  background: #f1f1f1;
+  color: #333;
+}
+
+.contact-btn:hover {
+  background: #ddd;
+}
+
+/* ===========================================================
+   FOOTER
+=========================================================== */
+.partner-footer {
+  background: #0d1b2a;
+  color: #e0e0e0;
+  padding: 60px 80px 20px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.footer-column h3 {
+  font-size: 18px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-column ul li {
+  margin-bottom: 8px;
+}
+
+.footer-column ul li a {
+  color: #adb5bd;
+  font-size: 15px;
+  transition: color 0.3s;
+}
+
+.footer-column ul li a:hover {
+  color: #ff4d4d;
+}
+
+.social-icons {
+  display: flex;
+  gap: 15px;
+}
+
+.social-icons img {
+  width: 34px;
+  transition: 0.3s;
+}
+
+.social-icons img:hover {
+  transform: scale(1.15);
+}
+
+.footer-bottom {
+  text-align: center;
+  border-top: 1px solid #1b263b;
+  margin-top: 30px;
+  padding-top: 15px;
+  font-size: 14px;
+  color: #bbb;
+}
+
+.footer-bottom a {
+  color: #ff4d4d;
+}
+
+/* ===========================================================
+   ANIMATIONS
+=========================================================== */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+/* ===========================================================
+   RESPONSIVE
+=========================================================== */
+@media (max-width: 950px) {
+  .hero-section {
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .hero-text {
+    text-align: center;
+    left: 0;
+    top: 20%;
+    max-width: 90%;
+  }
+
+  .hero-form {
+    width: 85%;
+    margin-top: 40px;
+  }
+  
+}

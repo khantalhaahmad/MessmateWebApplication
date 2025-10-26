@@ -1,0 +1,193 @@
+/* === Hero Section === */
+.better-food-section {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === Background Curve === */
+.curve-bg {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 95%;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* === Centered Text === */
+.better-food-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 700px;
+}
+
+.better-food-content h1 {
+  font-size: 3.2rem;
+  font-weight: 700;
+  color: #e23744;
+  line-height: 1.2;
+  margin-bottom: 15px;
+}
+
+.better-food-content p {
+  font-size: 1.1rem;
+  color: #2e2e2e;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* === Floating Food === */
+.floating-images {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.floating-img {
+  position: absolute;
+  animation: float 6s ease-in-out infinite;
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.15));
+}
+
+/* === Food Positioning === */
+.floating-img.burger {
+  top: 28%;
+  left: 10%;
+  width: 220px;
+  animation-delay: 0.2s;
+}
+
+.floating-img.noodles {
+  top: 22%; /* lifted slightly */
+  right: 16%;
+  width: 180px;
+  animation-delay: 0.4s;
+}
+
+.floating-img.biryani {
+  bottom: 30%; /* lifted up */
+  right: 13%;
+  width: 160px;
+  animation-delay: 0.6s;
+}
+
+/* === Tomato Placement === */
+.floating-img.tomato {
+  width: 28px;
+  height: 28px;
+  opacity: 0.9;
+  z-index: 1;
+  object-fit: contain;
+  animation: float 6s ease-in-out infinite;
+}
+
+/* 🍅 Tomatoes — placed beautifully around food */
+.tomato.t1 { top: 10%; left: 13%; transform: rotate(-10deg); } /* above burger */
+.tomato.t2 { top: 42%; right: 10%; transform: rotate(8deg); }  /* right of chowmein */
+.tomato.t3 { bottom: 18%; left: 40%; transform: rotate(-5deg); } /* near curve */
+.tomato.t4 { bottom: 22%; right: 28%; transform: rotate(15deg); } /* near biryani */
+
+/* === Leaf Placement === */
+.floating-img.leaf {
+  width: 28px;
+  height: 28px;
+  opacity: 0.85;
+  z-index: 1;
+  object-fit: contain;
+  animation: sway 7s ease-in-out infinite;
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(10deg) translateY(0); }
+  50% { transform: rotate(-10deg) translateY(-6px); }
+}
+
+/* 🌿 Leaves — placed around food nicely */
+.leaf.l1 { top: 8%; left: 18%; transform: rotate(25deg); }  /* above burger */
+.leaf.l2 { top: 18%; right: 17%; transform: rotate(-15deg); } /* above chowmein */
+.leaf.l3 { bottom: 25%; right: 10%; transform: rotate(-20deg); } /* right of biryani */
+.leaf.l4 { bottom: 20%; left: 45%; transform: rotate(10deg); } /* floating mid leaf */
+
+/* === Stats Section === */
+.stats-container {
+  position: absolute;
+  bottom: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  z-index: 3;
+}
+
+.stat-box {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  padding: 25px 60px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-8px);
+}
+
+.stat-box h2 {
+  color: #e23744;
+  font-size: 2rem;
+  margin-bottom: 5px;
+}
+
+.stat-box p {
+  color: #555;
+  font-size: 1rem;
+}
+
+/* === Responsive Design === */
+@media (max-width: 900px) {
+  .better-food-content h1 {
+    font-size: 2.4rem;
+  }
+
+  .floating-img.burger,
+  .floating-img.noodles,
+  .floating-img.biryani {
+    width: 130px;
+  }
+
+  .floating-img.tomato,
+  .floating-img.leaf {
+    width: 22px;
+    height: 22px;
+  }
+
+  .stats-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stat-box {
+    width: 80%;
+    padding: 20px 30px;
+  }
+  
+}

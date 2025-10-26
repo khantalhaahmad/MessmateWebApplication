@@ -1,0 +1,124 @@
+.onboarding-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f9fafc;
+  font-family: "Inter", sans-serif;
+}
+
+.onboarding-sidebar {
+  width: 28%;
+  background: #fff;
+  padding: 2rem;
+  border-right: 1px solid #e5e7eb;
+}
+
+.sidebar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.onboarding-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.onboarding-steps li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.onboarding-steps li.active {
+  color: #2563eb;
+  font-weight: 600;
+  border-left-color: #2563eb;
+}
+
+.onboarding-steps li.done {
+  color: #16a34a;
+  border-left-color: #16a34a;
+}
+
+.onboarding-steps button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.onboarding-main {
+  flex: 1;
+  padding: 3rem;
+}
+
+.onboarding-section {
+  max-width: 700px;
+  margin: auto;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  margin-top: 1.5rem;
+}
+
+.card h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.card input[type="text"],
+.card input[type="email"],
+.card input[type="file"] {
+  width: 100%;
+  padding: 0.7rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.next-btn,
+.nav-buttons button,
+.submit-btn {
+  background: #2563eb;
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.nav-buttons button:first-child {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.next-btn:hover,
+.submit-btn:hover {
+  background: #1d4ed8;
+}

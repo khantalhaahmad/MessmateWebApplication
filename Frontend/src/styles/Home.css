@@ -1,0 +1,301 @@
+/* ============================= */
+/* 🌅 HERO SECTION */
+/* ============================= */
+.hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hero-image,
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: white;
+  padding: 0 20px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.hero-content h1 {
+  font-size: 3.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.hero-content p {
+  font-size: 1.3rem;
+  max-width: 650px;
+}
+
+.scroll-down {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  z-index: 2;
+  cursor: pointer;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  40% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
+/* ============================= */
+/* 🌍 DISCOVER SECTION */
+/* ============================= */
+.discover {
+  min-height: 100vh;
+  background: #e5e7eb url("../assets/hero.avif") center/cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.discover h2 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+.discover .para {
+  max-width: 700px;
+  font-size: 1.18rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  color: #630d0d;
+
+  /* Limit to 3 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discover-items {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.discover-card {
+  padding: 20px 40px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-size: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.discover-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================= */
+/* 🍽️ AVAILABLE MESSES SECTION */
+/* ============================= */
+.mess-section {
+  background: linear-gradient(to right, #ffffff, #f5f5f5);
+  padding: 60px 30px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.3rem;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 20px;
+}
+
+/* Header row (Title + Search) */
+.mess-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
+/* Search Bar Styles */
+.mess-search-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mess-search-input {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  width: 180px;
+  transition: all 0.3s ease;
+}
+
+.mess-search-input:focus {
+  border-color: #ff5722;
+  outline: none;
+}
+
+.mess-location-select {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+}
+
+.mess-search-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background-color: #ff5722;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.mess-search-button:hover {
+  background-color: #e64a19;
+}
+
+/* Mess Grid */
+.mess-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  justify-items: center;
+  margin-top: 25px;
+}
+
+/* Loading + Empty States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.spinner {
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #ff5722;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.no-results {
+  color: #777;
+  margin-top: 20px;
+  font-size: 1.1rem;
+}
+
+/* ============================= */
+/* ⚫ FOOTER */
+/* ============================= */
+.footer {
+  background: #222;
+  color: #fff;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.footer-content h3 {
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+.footer-content p {
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  color: #ccc;
+}
+
+.social-links {
+  margin-top: 10px;
+}
+
+.social-links a {
+  color: #fff;
+  margin: 0 10px;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.social-links a:hover {
+  text-decoration: underline;
+}
+
+/* ============================= */
+/* 📱 RESPONSIVE DESIGN */
+/* ============================= */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero-content p {
+    font-size: 1.1rem;
+  }
+
+  .mess-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .mess-search-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .mess-search-input {
+    width: 100%;
+  }
+
+  .mess-grid {
+    grid-template-columns: 1fr;
+  }
+}

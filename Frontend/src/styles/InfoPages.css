@@ -1,0 +1,35 @@
+.info-page {
+  max-width: 850px;
+  margin: 80px auto;
+  padding: 40px 30px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  color: #222;
+  line-height: 1.7;
+}
+
+.info-page h1 {
+  font-size: 2rem;
+  color: #e23744;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f2f2f2;
+  padding-bottom: 10px;
+}
+
+.info-page h2 {
+  margin-top: 25px;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.info-page p,
+.info-page li {
+  font-size: 1rem;
+  color: #444;
+}
+
+.info-page ul {
+  margin-left: 20px;
+  list-style-type: disc;
+}

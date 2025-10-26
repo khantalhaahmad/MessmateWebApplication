@@ -1,0 +1,353 @@
+/* ====== Page Layout ====== */
+.admin-data-page {
+  max-width: 1100px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+  animation: fadeIn 0.3s ease;
+  font-family: "Inter", sans-serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== Header ====== */
+.admin-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.admin-header-bar h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2b3a67;
+  margin: 0;
+}
+
+/* ====== Back Button ====== */
+.back-btn {
+  background-color: #2b3a67;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(43, 58, 103, 0.3);
+}
+
+.back-btn:hover {
+  background-color: #3c4b8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(43, 58, 103, 0.4);
+}
+
+.back-btn:active {
+  transform: scale(0.98);
+}
+
+/* ====== Table ====== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.data-table thead {
+  background-color: #ff5722;
+  color: white;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9fafc;
+  transition: background 0.3s ease;
+}
+
+/* ====== States ====== */
+.no-data {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  color: #777;
+}
+
+.loading {
+  text-align: center;
+  padding: 30px;
+  font-weight: 500;
+  color: #555;
+}
+/* 🌟 UNIVERSAL ADMIN DATA PAGE STYLES */
+
+.admin-data-page {
+  background-color: #f8faff;
+  min-height: 100vh;
+  padding: 30px 60px;
+  font-family: "Inter", sans-serif;
+}
+
+/* ----- Header Styling ----- */
+.admin-data-page header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2b3a67;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-data-page header h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Back Button */
+.back-btn {
+  background-color: #f54748;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background-color: #d43d3e;
+  transform: translateY(-1px);
+}
+
+/* ----- Table Styling ----- */
+.data-table {
+  width: 100%;
+  margin-top: 25px;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.data-table thead {
+  background-color: #2b3a67;
+  color: #fff;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid #eaeaea;
+  font-size: 0.95rem;
+}
+
+.data-table th {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f6f8ff;
+  transition: 0.3s;
+}
+
+.no-data {
+  text-align: center;
+  color: #888;
+  padding: 25px 0;
+  font-style: italic;
+}
+
+/* ----- Info Paragraph (Revenue Report) ----- */
+.admin-data-page p {
+  font-size: 1rem;
+  color: #333;
+  margin-top: 12px;
+  margin-bottom: 5px;
+}
+
+/* Responsive Fixes */
+@media (max-width: 768px) {
+  .admin-data-page {
+    padding: 20px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+
+  .admin-data-page header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  /* ===== Chart Section ===== */
+.recharts-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== Reviews Section ===== */
+.reviews-section h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2b3a67;
+  margin-bottom: 10px;
+}
+/* ===== Revenue Report Header ===== */
+.revenue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2b3a67;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.report-subtext {
+  margin: 15px 0;
+  font-size: 15px;
+  color: #333;
+}
+
+/* ===== Metrics Cards ===== */
+.metrics-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.metric-card {
+  background: white;
+  flex: 1;
+  min-width: 220px;
+  max-width: 280px;
+  text-align: center;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card h3 {
+  font-size: 16px;
+  color: #2b3a67;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.metric-card p {
+  font-size: 22px;
+  font-weight: bold;
+  color: #111;
+}
+
+/* ===== Chart Section ===== */
+.chart-section {
+  margin-top: 40px;
+}
+
+.chart-section h2 {
+  color: #2b3a67;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== Reviews ===== */
+.reviews-section {
+  margin-top: 50px;
+}
+
+.reviews-section h2 {
+  color: #2b3a67;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.data-table th {
+  background: #ff6b35;
+  color: white;
+  text-align: left;
+  padding: 10px;
+  font-weight: 600;
+}
+
+.data-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 15px 0;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .metrics-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .metric-card {
+    width: 90%;
+  }
+}
+
+}

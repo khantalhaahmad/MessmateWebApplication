@@ -1,0 +1,61 @@
+/* === Add Mess Button Styling === */
+.add-mess-btn {
+  position: fixed;
+  top: 25px;
+  right: 190px;
+  background: #fff;
+  color: #ff4d4d;
+  border: 2px solid #ff4d4d;
+  padding: 10px 26px;
+  border-radius: 40px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  box-shadow: 0 6px 20px rgba(255, 77, 77, 0.25);
+  backdrop-filter: blur(15px);
+  z-index: 9999;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Hover Effect === */
+.add-mess-btn:hover {
+  background: #ff4d4d;
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 8px 25px rgba(255, 77, 77, 0.45);
+}
+
+/* === Hidden State (on scroll to mess/footer) === */
+.add-mess-btn.hide {
+  opacity: 0;
+  transform: translateY(-15px);
+  pointer-events: none;
+}
+
+/* === Show State === */
+.add-mess-btn.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Match height with dashboard === */
+.dashboard-btn,
+.add-mess-btn {
+  height: 42px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === Responsive for mobile === */
+@media (max-width: 768px) {
+  .add-mess-btn {
+    position: fixed;
+    top: 80px;
+    right: 35px;
+  }
+}

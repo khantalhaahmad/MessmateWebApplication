@@ -1,0 +1,120 @@
+/* ===== Floating Buttons Container ===== */
+.floating-buttons {
+  position: fixed;
+  top: 25px;
+  right: 35px;
+  display: flex;
+  gap: 15px;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+/* Hide when mess/footer section visible */
+.floating-buttons.hide {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+/* Show */
+.floating-buttons.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Base Floating Button ===== */
+.floating-btn {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 10px 26px;
+  border-radius: 40px;
+  border: none;
+  cursor: pointer;
+  backdrop-filter: blur(15px);
+  transition: all 0.35s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Light Mode (on Hero video/dark background) ===== */
+.floating-buttons.light-mode .glass-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* ===== Dark Mode (on white background) ===== */
+.floating-buttons.dark-mode .glass-btn {
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== Hover Effects ===== */
+.glass-btn:hover {
+  transform: scale(1.08);
+  transition: all 0.25s ease;
+}
+
+/* ===== Glow Effect for Both Login & Signup ===== */
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.6),
+    rgba(255, 77, 77, 0.4),
+    rgba(255, 255, 255, 0.6)
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: blur(12px);
+  z-index: -1;
+}
+
+.glow-btn:hover::before {
+  opacity: 1;
+}
+
+/* ===== Dashboard Button ===== */
+.dashboard-btn {
+  background: #fff;
+  color: #ff4d4d;
+  border: 2px solid #ff4d4d;
+  box-shadow: 0 6px 20px rgba(255, 77, 77, 0.25);
+}
+
+.dashboard-btn:hover {
+  background: #ff4d4d;
+  color: #fff;
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(255, 77, 77, 0.45);
+}
+
+/* ===== Smooth Entry Animation ===== */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.floating-buttons.show {
+  animation: fadeSlideIn 0.6s ease forwards;
+}

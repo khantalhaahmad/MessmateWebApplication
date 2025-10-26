@@ -1,0 +1,123 @@
+.footer {
+  background-color: #0d0d0d;
+  color: #fff;
+  padding: 50px 100px 25px;
+  font-family: "Inter", sans-serif;
+  border-top: 1px solid #1a1a1a;
+}
+
+/* 🔶 Logo & Text Row */
+.footer-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 25px;
+  margin-left: 120px; /* move MessMate slightly right */
+}
+
+.footer-logo {
+  width: 46px;
+  height: 46px;
+}
+
+.footer-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+/* 📚 Footer Grid — move all to the right */
+.footer-grid {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 60px;
+  margin-left: 165px; /* align all sections under MessMate */
+  margin-bottom: 20px;
+}
+
+.footer-column {
+  min-width: 160px;
+}
+
+.footer-column h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-link {
+  color: #bfbfbf;
+  text-decoration: none;
+  font-size: 14.5px;
+  display: block;
+  margin: 4px 0;
+  transition: color 0.3s ease;
+}
+
+.footer-link:hover {
+  color: #ffffff;
+}
+
+/* 🌐 Social Links */
+.footer-social {
+  display: flex;
+  gap: 14px;
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+.footer-social a {
+  color: #bfbfbf;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.footer-social a:hover {
+  color: #f4a261;
+  transform: scale(1.1);
+}
+
+/* ⚙️ Copyright */
+.footer-bottom {
+  border-top: 1px solid #1a1a1a;
+  text-align: left;
+  color: #999;
+  font-size: 13.5px;
+  padding-top: 15px;
+  margin-left: 120px; /* same alignment as MessMate */
+}
+
+/* 📱 Responsive Layout */
+@media (max-width: 1000px) {
+  .footer {
+    padding: 40px 50px;
+  }
+
+  .footer-header {
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .footer-title {
+    font-size: 28px;
+  }
+
+  .footer-grid {
+    flex-direction: column;
+    margin-left: 0;
+    gap: 25px;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    margin-left: 0;
+  }
+}

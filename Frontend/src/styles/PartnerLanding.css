@@ -1,0 +1,627 @@
+/* ================================
+   🌅 HERO SECTION (Zomato Style)
+   ================================ */
+.hero-section {
+  position: relative;
+  height: 85vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.8));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 800px;
+  padding: 0 1rem;
+  animation: fadeInHero 1s ease-in-out;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+/* 🎉 Offer Badge */
+.offer-badge {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-bottom: 1.8rem;
+  font-weight: 500;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.offer-badge small {
+  display: block;
+  font-size: 0.8rem;
+  color: #d1d5db;
+}
+
+/* 💙 CTA Button */
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 1rem 2.5rem;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+/* ================================
+   ⚡ MERGED INFO CARD SECTION
+   ================================ */
+.info-card-section {
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  top: -100px; /* makes it overlap hero */
+  z-index: 3;
+}
+
+.info-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 3rem 2.5rem;
+  max-width: 1100px;
+  width: 90%;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.info-left {
+  flex: 1;
+  min-width: 300px;
+}
+
+.info-left h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.info-left p {
+  color: #4b5563;
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+}
+
+.info-list li {
+  margin-bottom: 0.6rem;
+  font-size: 1rem;
+  color: #111;
+}
+
+.info-list a {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.info-list a:hover {
+  text-decoration: underline;
+}
+
+/* 📸 MessMate Logo on Right */
+.info-right {
+  flex: 0.8;
+  display: flex;
+  justify-content: center;
+}
+
+.messmate-card-img {
+  width: 250px;
+  height: 250px;
+  object-fit: contain;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ================================
+   ✨ Animations
+   ================================ */
+@keyframes fadeInHero {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================
+   📱 Responsive Design
+   ================================ */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2.2rem;
+  }
+
+  .offer-badge {
+    font-size: 0.9rem;
+    padding: 0.8rem 1.4rem;
+  }
+
+  .btn-primary {
+    padding: 0.8rem 2rem;
+    font-size: 0.95rem;
+  }
+
+  .info-card {
+    flex-direction: column;
+    text-align: center;
+    top: -60px;
+  }
+
+  .messmate-card-img {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+
+/* ================================
+   💡 WHY PARTNER SECTION
+   ================================ */
+.why-partner {
+  padding: 5rem 2rem;
+  text-align: center;
+  background: #fff;
+}
+
+.why-partner h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.divider {
+  width: 80%;
+  max-width: 800px;
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0 auto 2rem;
+}
+
+.why-grid {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+
+.why-item {
+  width: 280px;
+  padding: 2rem;
+  border-radius: 20px;
+  background: #f9fafb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.why-item:hover {
+  transform: translateY(-5px);
+}
+
+.why-item img {
+  width: 50px;
+  margin-bottom: 1rem;
+}
+
+.why-item h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+/* ================================
+   ⭐ SUCCESS STORIES
+   ================================ */
+.success-section {
+  background: #f3f7ff;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+
+.success-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+.stories {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.story-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 320px;
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.story-card p {
+  font-size: 0.95rem;
+  color: #374151;
+  margin-bottom: 1.2rem;
+}
+
+.story-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.story-profile img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+}
+
+/* ===========================================================
+   ❓ FAQ SECTION — Zomato Style (No Hover Color Change)
+=========================================================== */
+.faq-section {
+  background: #fff;
+  padding: 80px 10%;
+  text-align: center;
+}
+
+.faq-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin-bottom: 50px;
+}
+
+.faq {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.faq details {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.faq details:hover,
+.faq details[open] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #ddd;
+}
+
+/* Question (summary) styling */
+.faq summary {
+  cursor: pointer;
+  padding: 22px 28px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1c1c1c; /* ✅ always black */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  transition: none; /* ✅ no hover transition */
+}
+
+/* ✅ Remove red hover color */
+.faq summary:hover {
+  color: #1c1c1c;
+}
+
+/* Dropdown arrow */
+.faq summary::after {
+  content: "⌄";
+  font-size: 1.2rem;
+  color: #777;
+  transition: transform 0.3s ease;
+}
+
+.faq details[open] summary::after {
+  transform: rotate(180deg);
+  color: #777; /* ✅ arrow also stays neutral (gray) */
+}
+
+/* Answer section */
+.faq-answer {
+  padding: 0 28px 24px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+  animation: fadeIn 0.3s ease;
+}
+
+.faq-answer p {
+  color: #555;
+  font-size: 0.96rem;
+  line-height: 1.6;
+  margin: 20px 0 10px;
+}
+
+.faq-answer ul {
+  margin: 10px 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faq-answer li {
+  color: #444;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  list-style: disc;
+}
+
+.faq-answer li strong {
+  color: #1c1c1c;
+}
+
+.faq-answer a {
+  color: #ff4d4d;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.faq-answer a:hover {
+  text-decoration: underline;
+}
+
+/* Hide default marker */
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .faq-section {
+    padding: 60px 5%;
+  }
+
+  .faq summary {
+    font-size: 1rem;
+    padding: 18px 22px;
+  }
+
+  .faq-answer {
+    padding: 0 22px 20px;
+  }
+}
+
+
+/* ================================
+   🦶 FOOTER
+   ================================ */
+.partner-footer {
+  background: #111827;
+  color: #d1d5db;
+  padding: 4rem 2rem 2rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 3rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.footer-top img {
+  width: 60px;
+  margin-bottom: 1rem;
+}
+
+.footer-top h4 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.footer-top ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-top li {
+  margin-bottom: 0.5rem;
+  color: #d1d5db;
+}
+
+.footer-top a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.footer-bottom {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 3rem;
+  border-top: 1px solid #1f2937;
+  padding-top: 1rem;
+}
+
+/* 📱 Responsive */
+@media (max-width: 768px) {
+  .info-container {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .messmate-card-img {
+    width: 180px;
+    height: 180px;
+  }
+
+  .why-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+/* ============================
+   ⚡ INFO CARD SECTION
+============================ */
+.info-card-section {
+  padding: 60px 8%;
+  background: #fff;
+  border-radius: 20px;
+  margin: 60px auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.info-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 50px;
+}
+
+.info-left {
+  flex: 1.2;
+  min-width: 420px;
+}
+
+.info-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.messmate-card-img {
+  max-width: 300px;
+  border-radius: 16px;
+}
+
+/* ✅ Headings */
+.info-left h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin-bottom: 10px;
+}
+
+.info-left .info-subtext {
+  color: #6e6e6e;
+  font-size: 1rem;
+  margin-bottom: 25px;
+}
+
+/* ✅ Make it a 2-column grid */
+.docs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 60px;
+  row-gap: 25px;
+}
+
+@media (max-width: 768px) {
+  .docs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ✅ Each row item */
+.doc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.check {
+  background-color: #28a745;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.doc-text {
+  color: #2c2c2c;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.doc-subtext {
+  margin-top: 3px;
+  font-size: 0.9rem;
+  color: #6f6f6f;
+}
+
+.link {
+  color: #007aff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+}

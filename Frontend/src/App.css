@@ -1,0 +1,33 @@
+/* Reset unwanted spacing and background */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: none !important;  /* remove black background */
+  overflow-x: hidden;
+}
+
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f9faff;
+}
+
+.hero {
+  text-align: center;
+  padding: 40px 20px;
+  background: #e8f1ff;
+  color: #083c7c;
+}
+
+.messes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}

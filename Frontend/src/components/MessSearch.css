@@ -1,0 +1,69 @@
+/* ==========================
+   Mess Search (Aligned Right)
+========================== */
+
+.mess-search-container {
+  display: flex;
+  justify-content: flex-end; /* align to right side */
+  align-items: center;
+  gap: 15px; /* space between input & select */
+  margin: 20px 40px 30px 0; /* top/right spacing */
+}
+
+/* Match size of both input & dropdown */
+.mess-search-input,
+.mess-location-select {
+  width: 260px;
+  height: 45px;
+  padding: 10px 14px;
+  border-radius: 25px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background-color: #fff;
+}
+
+/* Focus styling (simple, clean) */
+.mess-search-input:focus,
+.mess-location-select:focus {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 6px rgba(255, 77, 77, 0.3);
+}
+
+/* Dropdown look */
+.mess-location-select {
+  cursor: pointer;
+}
+
+/* Optional loading spinner */
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #ff4d4d;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 📱 Responsive behavior */
+@media (max-width: 768px) {
+  .mess-search-container {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    margin-right: 20px;
+  }
+
+  .mess-search-input,
+  .mess-location-select {
+    width: 100%;
+    max-width: 320px;
+  }
+}
