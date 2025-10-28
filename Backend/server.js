@@ -66,7 +66,7 @@ import recommendationRoutes from "./routes/recommendationRoutes.js";
 import ownerStatsRoutes from "./routes/ownerStatsRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import menuRoutes from "./routes/menuRoutes.js";
-import messRequestRoutes from "./routes/messRequestRoutes.js";
+import messRequestRoutes from "./routes/messRequestsRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 // ============================================================
