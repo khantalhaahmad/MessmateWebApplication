@@ -1,17 +1,20 @@
 // src/services/api.js
 import axios from "axios";
 
-const VITE_ENV = import.meta.env.VITE_ENV || "";
-const isLocalhost = typeof window !== "undefined" && /localhost|127\.0\.0\.1/.test(window.location.hostname);
-const ENV = VITE_ENV || (isLocalhost ? "development" : "production");
+const ENV = import.meta.env.VITE_ENV || (
+  typeof window !== "undefined" && /localhost|127\.0\.0\.1/.test(window.location.hostname)
+    ? "development"
+    : "production"
+);
 
+// ✅ Use the API URLs exactly from .env (Do NOT add extra /api here)
 const BASE_URL =
   ENV === "production"
-    ? `${import.meta.env.VITE_API_URL_PROD}/api`
-    : `${import.meta.env.VITE_API_URL}/api`;
+    ? import.meta.env.VITE_API_URL_PROD     // Already contains /api
+    : import.meta.env.VITE_API_URL;         // Already contains /api (local)
 
-// If env vars missing, fallback to localhost
-const finalBase = import.meta.env.VITE_API_URL ? BASE_URL : (isLocalhost ? "http://localhost:4000/api" : BASE_URL);
+// ✅ Fallback for safety
+const finalBase = BASE_URL || "http://localhost:4000/api";
 
 const api = axios.create({
   baseURL: finalBase,
@@ -19,19 +22,18 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// attach JWT automatically
+// ✅ Attach JWT token automatically
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// handle 401
+// ✅ Handle Token Expiry
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      console.warn("⚠️ Token expired or invalid. Redirecting to login...");
       localStorage.clear();
       window.location.href = "/login";
     }
@@ -39,5 +41,5 @@ api.interceptors.response.use(
   }
 );
 
-console.log(`✅ API Base URL: ${finalBase}`);
+console.log(`🔥 API Connected: ${finalBase}`);
 export default api;
