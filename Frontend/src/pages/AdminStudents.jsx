@@ -1,3 +1,4 @@
+// src/pages/AdminStudents.jsx
 import React, { useEffect, useState, useContext } from "react";
 import api from "../services/api";
 import "../styles/AdminDataPage.css";
@@ -10,20 +11,29 @@ const AdminStudents = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     api
-      .get("/admin-extra/students", {
+      .get("/admin/students", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setStudents(res.data))
-      .catch((err) => console.error("❌ Failed to fetch students:", err))
+      .then((res) => {
+        // backend returns array; defensively ensure it's an array
+        const payload = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setStudents(payload);
+      })
+      .catch((err) => {
+        console.error("❌ Failed to fetch students:", err);
+        setStudents([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="admin-data-page">
-      {/* ===== Header Section ===== */}
       <header className="admin-header-bar">
         <h1>🎓 All Registered Students</h1>
 
@@ -35,7 +45,6 @@ const AdminStudents = () => {
         </div>
       </header>
 
-      {/* ===== Table Section ===== */}
       {loading ? (
         <div className="loading">Loading students...</div>
       ) : (
@@ -51,10 +60,10 @@ const AdminStudents = () => {
             <tbody>
               {students.length > 0 ? (
                 students.map((s) => (
-                  <tr key={s._id}>
-                    <td>{s._id}</td>
-                    <td>{s.name}</td>
-                    <td>{s.email}</td>
+                  <tr key={s._id || s.user_id || Math.random()}>
+                    <td>{s._id || s.user_id || "—"}</td>
+                    <td>{s.name || "—"}</td>
+                    <td>{s.email || "—"}</td>
                   </tr>
                 ))
               ) : (

@@ -22,9 +22,16 @@ const messSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     delivery_time: String,
     offer: String,
-    image: String,
     owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     menu: { type: menuSchema, default: { items: [] } },
+
+    // ✅ Added for Cloudinary document URLs
+    documents: {
+      pancard: String,
+      fssai: String,
+      menuPhoto: String,
+      bankDetails: String,
+    },
   },
   { timestamps: true }
 );

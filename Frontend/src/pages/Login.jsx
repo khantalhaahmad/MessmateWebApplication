@@ -32,12 +32,9 @@ const Login = () => {
 
       if (!token || !user) throw new Error("Invalid login response");
 
-      login({ user, token });
-      alert(`✅ Welcome back, ${user.name}!`);
-
-      // Redirect based on role
-      if (user.role === "admin") navigate("/admin/dashboard");
-      else navigate(from, { replace: true });
+  // Use AuthContext.login to persist & redirect (login normalizes role)
+  login({ user, token });
+  alert(`✅ Welcome back, ${user.name}!`);
     } catch (err) {
       console.error("❌ Login error:", err);
       setError(err.response?.data?.message || "Login failed. Please try again.");

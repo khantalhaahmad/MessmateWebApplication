@@ -1,6 +1,6 @@
-// src/Context/AuthContext.jsx
 import React, { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 export const AuthContext = createContext();
 
@@ -16,41 +16,41 @@ export const AuthProvider = ({ children }) => {
       const storedToken = localStorage.getItem("token");
 
       if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        // ✅ Normalize user so _id always exists
+        const normalizedUser = { ...parsed, _id: parsed._id || parsed.id };
+        setUser(normalizedUser);
         setToken(storedToken);
       }
     } catch (err) {
-      console.error("⚠️ Failed to parse user from localStorage:", err);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      console.error("❌ Error loading user from storage:", err);
+      localStorage.clear();
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // ✅ Login
   const login = ({ user, token }) => {
-    if (user && token) {
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", token);
-      setUser(user);
-      setToken(token);
-    } else {
-      console.error("⚠️ Invalid login data:", { user, token });
-    }
+    if (!user || !token) return Swal.fire("Error", "Invalid credentials", "error");
+
+    // ✅ Normalize _id when saving to localStorage
+    const normalizedUser = { ...user, _id: user._id || user.id };
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
+    localStorage.setItem("token", token);
+    setUser(normalizedUser);
+    setToken(token);
+
+    setTimeout(() => {
+      if (normalizedUser.role === "admin") navigate("/admin/dashboard");
+      else navigate("/dashboard");
+    }, 300);
   };
 
-  // ✅ Logout (redirect to homepage for ALL roles)
   const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    localStorage.clear();
     setUser(null);
     setToken(null);
-
-    // 🧭 Redirect everyone to homepage
     navigate("/");
-    // Optional: force UI refresh to reset states
-    window.location.reload();
   };
 
   return (

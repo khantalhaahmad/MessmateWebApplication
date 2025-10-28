@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import "../styles/MessDetails.css";
 
-const MessDetails = () => {
+const MessDetails = memo(() => {
   const { mess_id } = useParams();
   const [mess, setMess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,12 +25,20 @@ const MessDetails = () => {
   if (loading) return <p>Loading mess...</p>;
   if (!mess) return <p>Mess not found</p>;
 
+  const transformImage = (url) =>
+    url?.includes("/upload/")
+      ? url.replace("/upload/", "/upload/f_auto,q_auto,w_600/")
+      : url;
+
   return (
     <div className="mess-details">
-      <Link to="/" className="back-btn">← Back</Link>
+      <Link to="/" className="back-btn">
+        ← Back
+      </Link>
       <h1>{mess.name}</h1>
       <p className="mess-meta">
-        📍 {mess.location} &nbsp; ⏱ {mess.delivery_time || "25–30 mins"} &nbsp; ⭐ {mess.rating || 4.3}
+        📍 {mess.location} &nbsp; ⏱ {mess.delivery_time || "25–30 mins"} &nbsp; ⭐{" "}
+        {mess.rating || 4.3}
       </p>
       {mess.offer && <p className="mess-offer">{mess.offer}</p>}
 
@@ -40,9 +48,14 @@ const MessDetails = () => {
           {mess.menu.map((item, idx) => (
             <div key={idx} className="menu-card">
               <img
-                src={item.image || "/assets/default.png"}
+                src={
+                  item.image
+                    ? transformImage(item.image)
+                    : "/assets/default.png"
+                }
                 alt={item.name}
                 className="menu-img"
+                loading="lazy"
               />
               <h4>{item.name}</h4>
               <p>₹{item.price}</p>
@@ -54,6 +67,6 @@ const MessDetails = () => {
       )}
     </div>
   );
-};
+});
 
 export default MessDetails;

@@ -1,3 +1,4 @@
+// routes/auth.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -7,68 +8,177 @@ import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ✅ REGISTER
+/* ============================================================
+   🧾 REGISTER — Secure + Validated
+   ============================================================ */
 router.post(
   "/register",
   [
-    body("name").notEmpty(),
-    body("email").isEmail(),
-    body("password").isLength({ min: 6 }),
+    body("name").trim().notEmpty().withMessage("Name is required"),
+    body("email").isEmail().withMessage("Enter a valid email"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters long"),
+    body("role").optional().isString(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: errors.array(),
+      });
+    }
 
     try {
-      const { name, email, password, role } = req.body;
-      const exists = await User.findOne({ email });
-      if (exists) return res.status(400).json({ message: "User already exists" });
+      let { name, email, password, role } = req.body;
 
-      const hashed = await bcrypt.hash(password, 10);
-      const newUser = await User.create({ name, email, password: hashed, role: role || "student" });
+      // ============================================================
+      // 🧩 Normalize and validate role safely
+      // ============================================================
+      role = (role || "student").toString().trim().toLowerCase();
 
-      const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
+      // Auto-correct common typo (like "owne")
+      if (role.startsWith("owne")) role = "owner";
+
+      // Validate only allowed roles
+      const validRoles = ["student", "owner", "admin"];
+      if (!validRoles.includes(role)) role = "student";
+
+      // ============================================================
+      // 🧠 Check if user already exists
+      // ============================================================
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ success: false, message: "User already exists" });
+      }
+
+      // ============================================================
+      // 🔐 Hash Password
+      // ============================================================
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // ============================================================
+      // 🧱 Create User
+      // ============================================================
+      const newUser = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        role,
       });
 
+      // ============================================================
+      // 🔑 Generate JWT
+      // ============================================================
+      const token = jwt.sign(
+        { id: newUser._id, role: newUser.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      // ============================================================
+      // ✅ Response
+      // ============================================================
       res.status(201).json({
-        message: "Registered successfully",
+        success: true,
+        message: "🎉 Registered successfully",
         token,
-        user: { id: newUser._id, name, email, role: newUser.role },
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+        },
       });
-    } catch (err) {
-      res.status(500).json({ message: "Server error", error: err.message });
+    } catch (error) {
+      console.error("💥 Register Error:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
     }
   }
 );
 
-// ✅ LOGIN
-router.post("/login", async (req, res) => {
-  const { identifier, password } = req.body;
-  const user = await User.findOne({
-    $or: [{ email: identifier }, { name: identifier }],
-  });
-  if (!user) return res.status(404).json({ message: "User not found" });
+/* ============================================================
+   🔐 LOGIN — Secure + Validated
+   ============================================================ */
+router.post(
+  "/login",
+  [
+    body("identifier").notEmpty().withMessage("Email or username required"),
+    body("password").notEmpty().withMessage("Password is required"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ message: "Invalid password" });
+    try {
+      const { identifier, password } = req.body;
+      const user = await User.findOne({
+        $or: [{ email: identifier }, { name: identifier }],
+      });
 
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
 
-  res.json({
-    message: "Login successful",
-    token,
-    user: { id: user._id, name: user.name, email: user.email, role: user.role },
-  });
-});
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid password" });
+      }
 
-// ✅ VERIFY TOKEN
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.json({
+        success: true,
+        message: "Login successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("💥 Login Error:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
+    }
+  }
+);
+
+/* ============================================================
+   🧠 VERIFY TOKEN
+   ============================================================ */
 router.get("/verify", verifyToken, async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json({ user });
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("💥 Token Verify Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
 });
 
 export default router;

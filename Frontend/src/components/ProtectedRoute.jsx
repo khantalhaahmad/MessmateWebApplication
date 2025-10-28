@@ -1,55 +1,31 @@
-// src/components/ProtectedRoute.jsx
-import React, { useContext, useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import React, { useContext } from "react";
+import { Navigate } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, token } = useContext(AuthContext);
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const location = useLocation();
+const ProtectedRoute = ({ allowedRoles, children }) => {
+  const { user, loading } = useContext(AuthContext);
 
-  useEffect(() => {
-    // ✅ Check if user and token exist
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && (user || storedUser)) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, [user]);
-
-  // 🕒 While verifying authentication (initially)
-  if (isAuthenticated === null) {
+  if (loading) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "100px",
-          fontSize: "1.2rem",
-          color: "#555",
-        }}
-      >
-        Checking authentication...
+      <div style={{ textAlign: "center", marginTop: "25vh" }}>
+        <h3>Loading authentication...</h3>
       </div>
     );
   }
 
-  // 🚪 Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!user) {
+    console.warn("🚫 No user found — redirecting to login");
+    return <Navigate to="/login" replace />;
   }
 
-  // ⚙️ Role-based route guard (optional)
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    console.warn(
-      `🚫 Access denied. User role "${user?.role}" not allowed for this route.`
-    );
+  const role = (user.role || "").toLowerCase();
+  const allowed = allowedRoles?.map((r) => r.toLowerCase()) || [];
+
+  if (allowed.length > 0 && !allowed.includes(role)) {
+    console.warn(`🚫 Access denied for role: ${user.role}`);
     return <Navigate to="/" replace />;
   }
 
-  // ✅ If authenticated (and authorized), render the protected content
   return children;
 };
 

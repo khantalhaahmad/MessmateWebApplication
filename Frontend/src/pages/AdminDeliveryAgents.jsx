@@ -3,21 +3,24 @@ import api from "../services/api";
 import "../styles/AdminDashboard.css"; // reuse same styling
 import { AuthContext } from "../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const AdminDeliveryAgents = () => {
   const [agents, setAgents] = useState([]);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("token");
+  const config = { headers: { Authorization: `Bearer ${token}` } };
+
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const res = await api.get("/admin-extra/delivery-agents", config); // 👈 Make sure route matches backend
+        const res = await api.get("/admin/delivery-agents", config); // ✅ fixed route
         setAgents(res.data);
       } catch (err) {
         console.error("❌ Error fetching delivery agents:", err);
+        Swal.fire("Error", "Failed to fetch delivery agents.", "error");
       }
     };
     fetchAgents();
@@ -74,7 +77,7 @@ const AdminDeliveryAgents = () => {
                           : "rejected"
                       }`}
                     >
-                      {a.status}
+                      {a.status || "unknown"}
                     </span>
                   </td>
                   <td>{new Date(a.createdAt).toLocaleDateString()}</td>

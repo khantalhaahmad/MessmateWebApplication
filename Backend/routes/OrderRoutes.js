@@ -6,11 +6,9 @@ import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-/**
- * ============================================================
- * ✅ POST /orders → Place an order
- * ============================================================
- */
+/* ============================================================
+   ✅ POST /orders → Place an order
+   ============================================================ */
 router.post("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -86,11 +84,9 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * ============================================================
- * 🟢 GET /orders/my-orders → Fetch logged-in user's orders
- * ============================================================
- */
+/* ============================================================
+   🟢 GET /orders/my-orders → Fetch logged-in user's orders
+   ============================================================ */
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -110,6 +106,29 @@ router.get("/my-orders", verifyToken, async (req, res) => {
       message: "Error fetching orders",
       error: err.message,
     });
+  }
+});
+
+/* ============================================================
+   🧩 NEW: GET /orders/owner/:ownerId → Fetch all orders for mess owner
+   ============================================================ */
+router.get("/owner/:ownerId", verifyToken, async (req, res) => {
+  try {
+    const ownerId = req.params.ownerId;
+    console.log("🧾 Fetching orders for owner:", ownerId);
+
+    // ✅ Get all messes owned by this owner
+    const messes = await Mess.find({ owner_id: ownerId });
+    const messIds = messes.map((m) => m.mess_id);
+
+    // ✅ Fetch orders linked to those messes
+    const orders = await Order.find({ mess_id: { $in: messIds } }).sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${orders.length} orders for owner ${ownerId}`);
+    res.status(200).json({ success: true, orders });
+  } catch (err) {
+    console.error("💥 Error fetching owner orders:", err);
+    res.status(500).json({ success: false, message: "Error fetching owner orders" });
   }
 });
 

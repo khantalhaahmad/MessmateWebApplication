@@ -1,47 +1,55 @@
-import React from "react";
+// ✅ src/App.jsx — Optimized with Lazy Loading, Spinner & Clean Suspense
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./Context/AuthContext";
 import { CartProvider } from "./Context/CartContext";
-
-// Components
 import ProtectedRoute from "./components/ProtectedRoute";
-import AddMessForm from "./components/AddMessForm";
 import FloatingButtons from "./components/FloatingButtons";
 import Footer from "./components/Footer";
+import ErrorBoundary from "./components/ErrorBoundary";
 
-// Pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import DashboardRouter from "./pages/DashboardRouter";
-import MessMenu from "./pages/MessMenu";
-import Checkout from "./pages/Checkout";
-import DeliveryJoin from "./pages/DeliveryJoin";
-import DeliveryPartners from "./pages/DeliveryPartners";
-import PartnerLanding from "./pages/PartnerLanding";
+// 💤 Lazy-Loaded Pages (Main)
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
+const MessMenu = lazy(() => import("./pages/MessMenu"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const DeliveryJoin = lazy(() => import("./pages/DeliveryJoin"));
+const DeliveryPartners = lazy(() => import("./pages/DeliveryPartners"));
+const PartnerLanding = lazy(() => import("./pages/PartnerLanding"));
+const AddMessForm = lazy(() => import("./components/AddMessForm"));
 
-// Admin Pages
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminStudents from "./pages/AdminStudents";
-import AdminOwners from "./pages/AdminOwners";
-import AdminRevenueReport from "./pages/AdminRevenueReport";
-import AdminDeliveryAgents from "./pages/AdminDeliveryAgents";
+// 🧑‍💼 Admin Pages
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminStudents = lazy(() => import("./pages/AdminStudents"));
+const AdminOwners = lazy(() => import("./pages/AdminOwners"));
+const AdminRevenueReport = lazy(() => import("./pages/AdminRevenueReport"));
+const AdminDeliveryAgents = lazy(() => import("./pages/AdminDeliveryAgents"));
 
-// Info Pages
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Security from "./pages/Security";
-import TermsOfService from "./pages/TermsOfService";
-import HelpSupport from "./pages/HelpSupport";
-import ReportFraud from "./pages/ReportFraud";
-import Blog from "./pages/Blog";
+// 📄 Info / Static Pages
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Security = lazy(() => import("./pages/Security"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const HelpSupport = lazy(() => import("./pages/HelpSupport"));
+const ReportFraud = lazy(() => import("./pages/ReportFraud"));
+const Blog = lazy(() => import("./pages/Blog"));
+
+// 🌀 Custom Fallback Loader
+const Loader = () => (
+  <div className="loading-screen">
+    <div className="spinner"></div>
+    <p>Loading, please wait...</p>
+  </div>
+);
 
 function App() {
   const location = useLocation();
 
-  // ✅ Show footer only on UI/home pages
-  const showFooterRoutes = ["/", "/messes", "/checkout"];
-  const shouldShowFooter = showFooterRoutes.some((path) =>
-    location.pathname.startsWith(path)
+  // 🦶 Hide footer on dashboards, login/signup/admin pages
+  const noFooterRoutes = ["/login", "/signup", "/dashboard", "/admin"];
+  const shouldShowFooter = !noFooterRoutes.some((r) =>
+    location.pathname.startsWith(r)
   );
 
   return (
@@ -49,90 +57,86 @@ function App() {
       <CartProvider>
         <FloatingButtons />
         <main>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+          <ErrorBoundary>
+            <Suspense fallback={<Loader />}>
+              <Routes>
+                {/* 🌐 Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/messes/:mess_id" element={<MessMenu />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/delivery-partners" element={<DeliveryPartners />} />
+                <Route path="/delivery-join" element={<DeliveryJoin />} />
+                <Route path="/partner-with-us" element={<PartnerLanding />} />
+                <Route path="/addmess" element={<AddMessForm />} />
 
-            {/* Mess */}
-            <Route path="/messes/:mess_id" element={<MessMenu />} />
-            <Route path="/checkout" element={<Checkout />} />
+                {/* 👨‍🎓 Authenticated User / Owner Dashboard */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={["student", "owner", "messowner"]}>
+                      <DashboardRouter />
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* Delivery */}
-            <Route path="/delivery-partners" element={<DeliveryPartners />} />
-            <Route path="/delivery-join" element={<DeliveryJoin />} />
+                {/* 🧑‍💼 Admin Routes */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/students"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminStudents />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/owners"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminOwners />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/revenue-report"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminRevenueReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/delivery-agents"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminDeliveryAgents />
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* Partner */}
-            <Route path="/partner-with-us" element={<PartnerLanding />} />
-            <Route path="/addmess" element={<AddMessForm />} />
+                {/* 📄 Info Pages */}
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/help-support" element={<HelpSupport />} />
+                <Route path="/report-fraud" element={<ReportFraud />} />
+                <Route path="/blog" element={<Blog />} />
 
-            {/* Dashboards */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={["student", "owner", "messowner"]}>
-                  <DashboardRouter />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin */}
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery-agents"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDeliveryAgents />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/students"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminStudents />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/owners"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminOwners />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/revenue-report"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminRevenueReport />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Info Pages */}
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/help-support" element={<HelpSupport />} />
-            <Route path="/report-fraud" element={<ReportFraud />} />
-            <Route path="/blog" element={<Blog />} />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+                {/* 🚫 Catch-All Redirect */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </main>
-
-        {/* ✅ Render footer ONLY on homepage/UI routes */}
         {shouldShowFooter && <Footer />}
       </CartProvider>
     </AuthProvider>

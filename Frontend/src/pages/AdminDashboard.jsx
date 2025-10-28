@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import api from "../services/api";
 import "../styles/AdminDashboard.css";
 import LogoutPopup from "../components/LogoutPopup";
@@ -15,32 +15,34 @@ import {
 } from "recharts";
 import Swal from "sweetalert2";
 
-
 const AdminDashboard = () => {
   const [summary, setSummary] = useState(null);
   const [trends, setTrends] = useState([]);
-  const [topMesses, setTopMesses] = useState([]);
   const [payouts, setPayouts] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [requests, setRequests] = useState([]);
   const [messList, setMessList] = useState([]);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [selectedMess, setSelectedMess] = useState("all");
+  const [topMesses, setTopMesses] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [deliveryRequests, setDeliveryRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
 
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
-  const [deliveryRequests, setDeliveryRequests] = useState([]);
 
+  // 🔒 Auth check
+  useEffect(() => {
+    if (!token) {
+      Swal.fire("Session Expired", "Please log in again.", "warning");
+      navigate("/login");
+    }
+  }, [token, navigate]);
 
-  /* ============================================================
-     🕒 Live Date & Time Update
-  ============================================================ */
+  // 🕒 Live clock update
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -62,39 +64,41 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  /* ============================================================
-     🚀 Fetch all dashboard data
-  ============================================================ */
+  // 📦 Fetch all admin dashboard data
   const fetchAllData = async () => {
     setLoading(true);
     try {
       const [
         summaryRes,
         trendsRes,
-        topRes,
         payoutsRes,
-        reviewsRes,
         requestsRes,
         messListRes,
-      ] = await Promise.all([
-        api.get("/admin-extra/daily-summary", config),
-        api.get("/admin-extra/revenue-trends", config),
-        api.get("/admin-extra/top-messes", config),
-        api.get("/admin-extra/owner-payouts", config),
-        api.get("/admin-extra/recent-reviews", config),
-        api.get("/admin-extra/mess-requests/pending", config),
-        api.get("/admin-extra/mess-list", config),
+        topMessesRes,
+        reviewsRes,
+        deliveryReqRes,
+      ] = await Promise.allSettled([
+        api.get("/admin/daily-summary", config),
+        api.get("/admin/revenue-trends", config),
+        api.get("/admin/owner-payouts", config),
+        api.get("/admin/mess-requests/pending", config),
+        api.get("/admin/mess-list", config),
+        api.get("/admin/top-messes", config),
+        api.get("/admin/reviews", config),
+        api.get("/admin/delivery-requests/pending", config),
       ]);
 
-      setSummary(summaryRes.data);
-      setTrends(trendsRes.data);
-      setTopMesses(topRes.data);
-      setPayouts(payoutsRes.data);
-      setReviews(reviewsRes.data);
-      setRequests(requestsRes.data);
-      setMessList(messListRes.data || []);
+      setSummary(summaryRes?.value?.data || {});
+      setTrends(trendsRes?.value?.data || []);
+      setPayouts(payoutsRes?.value?.data || []);
+      setRequests(requestsRes?.value?.data || []);
+      setMessList(messListRes?.value?.data || []);
+      setTopMesses(topMessesRes?.value?.data || []);
+      setReviews(reviewsRes?.value?.data || []);
+      setDeliveryRequests(deliveryReqRes?.value?.data || []);
     } catch (err) {
       console.error("❌ Dashboard fetch failed:", err);
+      Swal.fire("Error", "Failed to load admin dashboard data.", "error");
     } finally {
       setLoading(false);
     }
@@ -104,521 +108,426 @@ const AdminDashboard = () => {
     fetchAllData();
   }, []);
 
-  // ============================================================
-// 🚴 Fetch Pending Delivery Requests
-// ============================================================
-useEffect(() => {
-  const fetchDeliveryRequests = async () => {
+  // 💸 Update payout status
+  const updatePayoutStatus = async (messName, payoutStatus) => {
     try {
-      const res = await api.get("/admin/delivery-requests", config);
-      setDeliveryRequests(res.data);
-    } catch (err) {
-      console.error("❌ Error fetching delivery requests:", err);
-    }
-  };
-  fetchDeliveryRequests();
-}, []);
-
-
-  /* ============================================================
-   💸 Update payout status
-  ============================================================ */
-const updatePayoutStatus = async (messName, payoutStatus) => {
-  try {
-    const response = await api.put(
-      "/admin-extra/payout-status",
-      { messName, payoutStatus },
-      {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      }
-    );
-    
-
-    if (response.data.success) {
-      alert(`✅ ${response.data.message}`);
-      setPayouts((prev) =>
-        prev.map((p) =>
-          p.messName === messName ? { ...p, payoutStatus } : p
-        )
+      const res = await api.put(
+        "/admin/payout-status",
+        { messName, payoutStatus },
+        config
       );
-    } else {
-      alert("Failed to update payout status");
-    }
-  } catch (err) {
-    console.error("❌ Error updating payout:", err);
-    alert("Failed to update payout status");
-  }
-};
-
-
-  /* ============================================================
-     ✅ Approve / Reject Mess Request
-  ============================================================ */
-  const handleRequestAction = async (id, action) => {
-    try {
-      await api.put(`/mess-requests/${id}/${action}`, {}, config);
-      alert(`✅ Request ${action}ed successfully!`);
-      setRequests((prev) => prev.filter((r) => r._id !== id));
+      if (res.data.success) {
+        Swal.fire("Updated!", res.data.message, "success");
+        setPayouts((prev) =>
+          prev.map((p) =>
+            p.messName === messName ? { ...p, payoutStatus } : p
+          )
+        );
+      }
     } catch (err) {
-      console.error(`Failed to ${action} request:`, err);
-      alert(`❌ Failed to ${action} request.`);
+      Swal.fire("Error", "Something went wrong while updating payout.", "error");
     }
   };
-  /* ============================================================
-   ✅ Approve / Reject Mess Request (SweetAlert2 Version)
-   ============================================================ */
-const handleApprove = async (id) => {
-  const confirm = await Swal.fire({
-    icon: "question",
-    title: "Approve Mess Request?",
-    text: "This will move it to active Messes.",
-    showCancelButton: true,
-    confirmButtonText: "Yes, Approve",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#28a745",
-  });
 
-  if (!confirm.isConfirmed) return;
+  // 🧾 Approve/Reject Mess Request
+  const handleApprove = async (id) => {
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: "Approve Mess Request?",
+      text: "This will move it to active Messes.",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Approve",
+      confirmButtonColor: "#28a745",
+    });
+    if (!confirm.isConfirmed) return;
 
-  try {
-    const res = await api.put(`/admin-extra/mess-request/${id}/approve`, {}, config);
-    if (res.data.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Approved!",
-        text: "Mess added successfully.",
-      });
-      setRequests((prev) => prev.filter((r) => r._id !== id));
-      setMessList((prev) => [...prev, res.data.mess]);
+    try {
+      const res = await api.put(`/admin/mess-request/${id}/approve`, {}, config);
+      if (res.data.success) {
+        Swal.fire("Approved!", "Mess added successfully.", "success");
+        setRequests((prev) => prev.filter((r) => r._id !== id));
+      }
+    } catch (err) {
+      Swal.fire("Error", "Failed to approve mess.", "error");
     }
-  } catch (err) {
-    console.error("Approval error:", err);
-    Swal.fire("Error", "Failed to approve mess.", "error");
-  }
-};
-
-const handleReject = async (id) => {
-  const confirm = await Swal.fire({
-    icon: "warning",
-    title: "Reject Mess Request?",
-    text: "This will permanently delete the request.",
-    showCancelButton: true,
-    confirmButtonText: "Yes, Reject",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#e23744",
-  });
-
-  if (!confirm.isConfirmed) return;
-
-  try {
-    const res = await api.put(`/admin-extra/mess-request/${id}/reject`, {}, config);
-    if (res.data.success) {
-      Swal.fire({
-        icon: "info",
-        title: "Rejected!",
-        text: "Mess request removed successfully.",
-      });
-      setRequests((prev) => prev.filter((r) => r._id !== id));
-    }
-  } catch (err) {
-    console.error("Rejection error:", err);
-    Swal.fire("Error", "Failed to reject mess.", "error");
-  }
-};
-
-  /* ============================================================
-     📊 Handle revenue report navigation
-  ============================================================ */
-  const handleViewReport = () => {
-    if (!startDate || !endDate) {
-      alert("Please select both start and end dates.");
-      return;
-    }
-
-    navigate(
-      `/admin/revenue-report?startDate=${startDate}&endDate=${endDate}&messName=${selectedMess}`
-    );
   };
 
-  /* ============================================================
-     🚪 Handle Logout Confirmation
-  ============================================================ */
+  const handleReject = async (id) => {
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: "Reject Mess Request?",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Reject",
+      confirmButtonColor: "#e23744",
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await api.put(`/admin/mess-request/${id}/reject`, {}, config);
+      if (res.data.success) {
+        Swal.fire("Rejected!", "Mess request removed.", "info");
+        setRequests((prev) => prev.filter((r) => r._id !== id));
+      }
+    } catch (err) {
+      Swal.fire("Error", "Failed to reject mess request.", "error");
+    }
+  };
+
+  // ⭐ Review Delete
+  const deleteReview = async (id) => {
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: "Delete Review?",
+      text: "This cannot be undone.",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Delete",
+      confirmButtonColor: "#e23744",
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await api.delete(`/admin/reviews/${id}`, config);
+      Swal.fire("Deleted!", res.data.message, "success");
+      setReviews((prev) => prev.filter((r) => r._id !== id));
+    } catch {
+      Swal.fire("Error", "Failed to delete review.", "error");
+    }
+  };
+
+  // 🚴 Delivery partner approvals
+  const handleApproveDelivery = async (id) => {
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: "Approve Delivery Partner?",
+      text: "Approving will add them as a delivery agent and remove the request.",
+      showCancelButton: true,
+      confirmButtonText: "Approve",
+      confirmButtonColor: "#28a745",
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await api.put(`/admin/delivery-request/${id}/approve`, {}, config);
+      if (res.data.success) {
+        Swal.fire("Approved!", res.data.message, "success");
+        setDeliveryRequests((prev) => prev.filter((d) => d._id !== id));
+      }
+    } catch (err) {
+      Swal.fire("Error", "Failed to approve delivery request.", "error");
+    }
+  };
+
+  const handleRejectDelivery = async (id) => {
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: "Reject Delivery Request?",
+      showCancelButton: true,
+      confirmButtonText: "Reject",
+      confirmButtonColor: "#e23744",
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await api.put(`/admin/delivery-request/${id}/reject`, {}, config);
+      if (res.data.success) {
+        Swal.fire("Rejected!", res.data.message, "info");
+        setDeliveryRequests((prev) => prev.filter((d) => d._id !== id));
+      }
+    } catch (err) {
+      Swal.fire("Error", "Failed to reject delivery request.", "error");
+    }
+  };
+
+  // 🚪 Logout
   const handleLogoutClick = () => setShowLogoutPopup(true);
   const handleConfirmLogout = () => {
     logout();
     setShowLogoutPopup(false);
   };
-  const handleCancelLogout = () => setShowLogoutPopup(false);
 
-  if (loading || !summary)
-    return <div className="admin-loading-screen">Loading Admin Dashboard...</div>;
+  // 📊 Stable 7-day trend (no moving/animation)
+  const trendData = useMemo(() => {
+    const days = [];
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const isoDate = d.toISOString().split("T")[0];
+      days.push({
+        label: `${months[d.getMonth()]} ${d.getDate()}`,
+        isoDate,
+      });
+    }
 
-  /* ============================================================
-     🧭 Render Component
-  ============================================================ */
+    return days.map((day) => {
+      const match = trends.find((t) =>
+        new Date(t._id).toISOString().split("T")[0] === day.isoDate
+      );
+      return {
+        _id: day.label,
+        totalRevenue: match ? match.totalRevenue : 0,
+      };
+    });
+  }, [trends]);
+
+  if (loading)
+    return (
+      <div className="admin-loading-screen">
+        <div className="spinner"></div>
+        <p>Loading Admin Dashboard...</p>
+      </div>
+    );
+
   return (
     <div className="admin-dashboard">
-      {/* ===== HEADER / NAVBAR ===== */}
       <header className="admin-header">
         <div className="header-left">
           <h1>📊 MessMate Admin Dashboard</h1>
         </div>
-
         <div className="header-center">
           <button className="home-btn" onClick={() => navigate("/")}>
             🏠 Home
           </button>
           <span className="datetime">{currentTime}</span>
         </div>
-
         <div className="header-right">
-          <div className="admin-info">
-            <span className="admin-name">{user?.name || "Admin"}</span>
-          </div>
+          <span className="admin-name">{user?.name || "Admin"}</span>
           <button className="logout-btn" onClick={handleLogoutClick}>
             Logout
           </button>
         </div>
       </header>
 
-      {/* ===== LOGOUT POPUP ===== */}
       {showLogoutPopup && (
         <LogoutPopup
           onConfirm={handleConfirmLogout}
-          onCancel={handleCancelLogout}
+          onCancel={() => setShowLogoutPopup(false)}
         />
       )}
 
-      {/* ===== SUMMARY CARDS ===== */}
-      <section className="summary-section">
-        <div className="summary-card">
-          <h3>🛒 Total Orders (Today)</h3>
-          <p>{summary.totalOrders}</p>
-        </div>
+      {/* 🧾 SUMMARY SECTION */}
+<section className="summary-section">
+  {/* Orders */}
+  <div className="summary-card">
+    <h3>🛒 Orders (Today)</h3>
+    <p>{summary?.totalOrders ?? 0}</p>
+  </div>
 
-        <div className="summary-card">
-          <h3>💰 Total Revenue (₹)</h3>
-          <p>{summary.totalRevenue}</p>
-        </div>
+  {/* Owner Revenue */}
+  <div className="summary-card">
+    <h3>🏦 Owner Revenue (₹)</h3>
+    <p>{summary?.totalRevenue ?? 0}</p>
+  </div>
 
-        <div
-          className="summary-card clickable"
-          onClick={() => navigate("/admin/owners")}
-        >
-          <h3>👨‍🍳 Total Mess Owners</h3>
-          <p>{summary.totalOwners}</p>
-        </div>
+  {/* Admin Commission */}
+<div className="summary-card">
+  <h3>💼 Platform Fees (₹)</h3>
+  <p>{summary?.totalCommission ?? 0}</p>
+</div>
 
-        <div
-          className="summary-card clickable"
-          onClick={() => navigate("/admin/students")}
-        >
-          <h3>🎓 Total Students</h3>
-          <p>{summary.totalStudents}</p>
-        </div>
-          <div
+
+  {/* Mess Owners */}
+  <div
+    className="summary-card clickable"
+    onClick={() => navigate("/admin/owners")}
+  >
+    <h3>👨‍🍳 Mess Owners</h3>
+    <p>{summary?.totalOwners ?? 0}</p>
+  </div>
+
+  {/* Students */}
+  <div
+    className="summary-card clickable"
+    onClick={() => navigate("/admin/students")}
+  >
+    <h3>🎓 Students</h3>
+    <p>{summary?.totalStudents ?? 0}</p>
+  </div>
+
+  {/* Delivery Agents */}
+  <div
     className="summary-card clickable"
     onClick={() => navigate("/admin/delivery-agents")}
   >
-    <h3>🚴‍♂️ Total Delivery Agents</h3>
-    <p>{summary.totalDeliveryAgents || 0}</p>
+    <h3>🚴‍♂️ Delivery Agents</h3>
+    <p>{summary?.totalDeliveryAgents ?? 0}</p>
   </div>
+</section>
 
-      </section>
-
-      {/* ===== DATE FILTER ===== */}
-      <section className="date-filter">
-        <h3>📅 Check Revenue Between Dates</h3>
-        <div className="date-inputs">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-          <select
-            value={selectedMess}
-            onChange={(e) => setSelectedMess(e.target.value)}
-          >
-            <option value="all">All Messes</option>
-            {messList.map((m) => (
-              <option key={m._id} value={m.name}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          <button onClick={handleViewReport}>View</button>
-        </div>
-      </section>
-
-      {/* ===== REVENUE TREND ===== */}
+      {/* 📈 STABLE REVENUE TREND */}
       <section className="chart-section">
-        <h2>📊 Revenue Trend (Last 7 Days)</h2>
+        <h2>📈 Revenue Trend (Last 7 Days)</h2>
         <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={trends}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="_id" />
-            <YAxis />
-            <Tooltip />
+          <LineChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+            <XAxis dataKey="_id" tick={{ fontSize: 12, fill: "#555" }} />
+            <YAxis tick={{ fontSize: 12, fill: "#555" }} />
+            <Tooltip formatter={(v) => [`₹${v}`, "Revenue"]} />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="totalRevenue"
-              stroke="#0077ff"
-              strokeWidth={2}
+              stroke="#007bff"
+              strokeWidth={2.5}
+              dot={{ r: 5, fill: "#007bff", strokeWidth: 1, stroke: "#fff" }}
+              activeDot={{ r: 7 }}
+              isAnimationActive={false}
+              animateNewValues={false}
             />
           </LineChart>
         </ResponsiveContainer>
       </section>
-      {/* ===== TOP MESSES ===== */}
+
+      {/* 🏆 Top Messes */}
       <section className="table-section">
-        <h2>🏆 Top Performing Messes (Today)</h2>
+        <h2>🏆 Top Performing Messes</h2>
         <table className="earnings-table">
           <thead>
             <tr>
               <th>Mess Name</th>
+              <th>Location</th>
               <th>Orders</th>
-              <th>Earnings (₹)</th>
+              <th>Revenue</th>
             </tr>
           </thead>
           <tbody>
             {topMesses.length > 0 ? (
-              topMesses.map((m, i) => (
-                <tr key={i}>
-                  <td>{m._id}</td>
-                  <td>{m.totalOrders}</td>
-                  <td>{m.totalEarnings}</td>
+              topMesses.map((m) => (
+                <tr key={m.messId ?? m._id}>
+                  <td>{m.name}</td>
+                  <td>{m.location}</td>
+                  <td>{m.orderCount}</td>
+                  <td>{m.totalRevenue}</td>
                 </tr>
               ))
             ) : (
-              <tr>
-                <td colSpan="3" className="no-data">
-                  No data available
-                </td>
-              </tr>
+              <tr><td colSpan="4" className="no-data">No top messes yet</td></tr>
             )}
           </tbody>
         </table>
       </section>
 
-      {/* ===== PENDING REQUESTS ===== */}
-<section className="table-section">
-  <h2>📬 Pending Mess Requests</h2>
-  <table className="earnings-table">
-    <thead>
-      <tr>
-        <th>Mess Name</th>
-        <th>Location</th>
-        <th>Owner</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Date</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {requests.length > 0 ? (
-        requests.map((r, i) => (
-          <tr key={i}>
-            <td>{r.name || "N/A"}</td>
-            <td>{r.location || "N/A"}</td>
-            <td>{r.owner_id?.name || "N/A"}</td>
-            <td>{r.owner_id?.email || "N/A"}</td>
-            <td>
-              <span
-                className={`status-badge ${
-                  r.status === "pending"
-                    ? "pending"
-                    : r.status === "approved"
-                    ? "approved"
-                    : "rejected"
-                }`}
-              >
-                {r.status}
-              </span>
-            </td>
-            <td>{new Date(r.createdAt).toLocaleDateString()}</td>
-            <td>
-              <div className="action-btns">
-           <button
-  className="btn-approve"
-  onClick={() => handleApprove(r._id)}
->
-  ✅ Approve
-</button>
-
-
-                <button
-  className="btn-reject"
-  onClick={() => handleReject(r._id)}
->
-  ❌ Reject
-</button>
-
-              </div>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan="7" className="no-data">
-            No pending requests
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</section>
-{/* ===== PENDING DELIVERY REQUESTS ===== */}
-<section className="table-section">
-  <h2>🚴 Pending Delivery Agent Requests</h2>
-  <table className="earnings-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Phone</th>
-        <th>Email</th>
-        <th>City</th>
-        <th>Vehicle</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {deliveryRequests.length > 0 ? (
-        deliveryRequests.map((r, i) => (
-          <tr key={i}>
-            <td>{r.name}</td>
-            <td>{r.phone}</td>
-            <td>{r.email}</td>
-            <td>{r.city || "N/A"}</td>
-            <td>{r.vehicleType} ({r.vehicleNumber})</td>
-            <td>{r.date}</td>
-            <td>
-              <span className="status-badge pending">{r.status}</span>
-            </td>
-            <td>
-              <div className="action-btns">
-                <button
-                  className="btn-approve"
-                  onClick={() => handleApproveDelivery(r._id)}
-                >
-                  ✅ Approve
-                </button>
-                <button
-                  className="btn-reject"
-                  onClick={() => handleRejectDelivery(r._id)}
-                >
-                  ❌ Reject
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan="8" className="no-data">
-            No pending delivery requests
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</section>
-
-
-      {/* ===== OWNER PAYOUTS (This Month) ===== */}
-<section className="table-section">
-  <h2>💸 Owner Payouts (This Month)</h2>
-  <table className="earnings-table">
-    <thead>
-      <tr>
-        <th>Mess</th>
-        <th>Owner</th>
-        <th>Email</th>
-        <th>Total</th>
-        <th>Commission</th>
-        <th>Payable</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {payouts.map((p, i) => (
-        <tr key={i}>
-          <td>{p.messName}</td>
-          <td>{p.ownerName}</td>
-          <td>{p.ownerEmail}</td>
-          <td>{p.totalRevenue}</td>
-          <td>{p.commission}</td>
-          <td>{p.payable}</td>
-          <td>
-            <span
-              className={`status-badge ${
-                p.payoutStatus === "Paid" ? "paid" : "pending"
-              }`}
-            >
-              {p.payoutStatus}
-            </span>
-          </td>
-          <td>
-            {p.payoutStatus === "Pending" ? (
-              <button
-                className="approve-btn"
-                onClick={() => updatePayoutStatus(p.messName, "Paid")}
-              >
-                💰 Mark as Paid
-              </button>
-            ) : (
-              <button
-                className="reject-btn"
-                onClick={() => updatePayoutStatus(p.messName, "Pending")}
-              >
-                ⏳ Mark as Pending
-              </button>
-            )}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</section>
-
-
-      {/* ===== REVIEWS ===== */}
+      {/* ⭐ User Reviews */}
       <section className="table-section">
-        <h2>⭐ Recent Reviews</h2>
+        <h2>⭐ User Reviews</h2>
         <table className="earnings-table">
           <thead>
-            <tr>
-              <th>User</th>
-              <th>Email</th>
-              <th>Review</th>
-              <th>Rating</th>
-            </tr>
+            <tr><th>User</th><th>Mess</th><th>Rating</th><th>Comment</th><th>Action</th></tr>
           </thead>
           <tbody>
             {reviews.length > 0 ? (
-              reviews.map((r, i) => (
-                <tr key={i}>
-                  <td>{r.user_id?.name}</td>
-                  <td>{r.user_id?.email}</td>
-                  <td>{r.comment || "No comment"}</td>
-                  <td>{r.rating}</td>
+              reviews.map((r) => (
+                <tr key={r._id}>
+                  <td>{r.user_id?.name || "N/A"}</td>
+                  <td>{r.mess_id?.name || "N/A"}</td>
+                  <td>{r.rating ?? "—"}</td>
+                  <td>{r.comment || "—"}</td>
+                  <td><button className="btn-reject" onClick={() => deleteReview(r._id)}>🗑 Delete</button></td>
                 </tr>
               ))
             ) : (
-              <tr>
-                <td colSpan="4" className="no-data">
-                  No recent reviews
-                </td>
-              </tr>
+              <tr><td colSpan="5" className="no-data">No reviews found</td></tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* 🚴 Delivery Requests */}
+      <section className="table-section">
+        <h2>🚴 Delivery Partner Requests</h2>
+        <table className="earnings-table">
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>City</th><th>Vehicle</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {deliveryRequests.length > 0 ? (
+              deliveryRequests.map((d) => (
+                <tr key={d._id}>
+                  <td>{d.name}</td>
+                  <td>{d.email}</td>
+                  <td>{d.city}</td>
+                  <td>{d.vehicleType}</td>
+                  <td>
+                    <button className="btn-approve" onClick={() => handleApproveDelivery(d._id)}>✅ Approve</button>
+                    <button className="btn-reject" onClick={() => handleRejectDelivery(d._id)}>❌ Reject</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="5" className="no-data">No pending delivery requests</td></tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* 📬 Pending Mess Requests */}
+      <section className="table-section">
+        <h2>📬 Pending Mess Requests</h2>
+        <table className="earnings-table">
+          <thead>
+            <tr><th>Mess</th><th>Location</th><th>Owner</th><th>Email</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {requests.length > 0 ? (
+              requests.map((r) => (
+                <tr key={r._id}>
+                  <td>{r.name}</td>
+                  <td>{r.location}</td>
+                  <td>{r.owner_id?.name}</td>
+                  <td>{r.owner_id?.email}</td>
+                  <td>{r.status}</td>
+                  <td>{new Date(r.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button className="btn-approve" onClick={() => handleApprove(r._id)}>✅ Approve</button>
+                    <button className="btn-reject" onClick={() => handleReject(r._id)}>❌ Reject</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="7" className="no-data">No pending requests</td></tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* 💸 Owner Payouts */}
+      <section className="table-section">
+        <h2>💸 Owner Payouts (This Month)</h2>
+        <table className="earnings-table">
+          <thead>
+            <tr><th>Mess</th><th>Owner</th><th>Email</th><th>Total</th><th>Commission</th><th>Payable</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {payouts.length > 0 ? (
+              payouts.map((p) => (
+                <tr key={p.messId ?? p.messName}>
+                  <td>{p.messName}</td>
+                  <td>{p.ownerName}</td>
+                  <td>{p.ownerEmail}</td>
+                  <td>{p.totalRevenue}</td>
+                  <td>{p.commission}</td>
+                  <td>{p.payable}</td>
+                  <td>
+                    <span className={`status-badge ${p.payoutStatus === "Paid" ? "paid" : "pending"}`}>{p.payoutStatus}</span>
+                  </td>
+                  <td>
+                    <button
+                      className="approve-btn"
+                      onClick={() =>
+                        updatePayoutStatus(
+                          p.messName,
+                          p.payoutStatus === "Paid" ? "Pending" : "Paid"
+                        )
+                      }
+                    >
+                      {p.payoutStatus === "Paid"
+                        ? "⏳ Mark Pending"
+                        : "💰 Mark Paid"}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="8" className="no-data">No payouts found</td></tr>
             )}
           </tbody>
         </table>

@@ -1,10 +1,11 @@
-// middleware/auth.js
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
     if (!token) return res.status(401).json({ message: "Token missing" });
 

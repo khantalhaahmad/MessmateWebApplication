@@ -1,8 +1,9 @@
+// ✅ src/components/AddMessForm.jsx — Market-Launch Final Version (FIXED)
 import React, { useState, useContext } from "react";
 import "../styles/AddMessForm.css";
 import api from "../services/api";
 import { AuthContext } from "../Context/AuthContext";
-import Swal from "sweetalert2"; // ✅ Import SweetAlert2
+import Swal from "sweetalert2";
 
 const AddMessForm = () => {
   const { user } = useContext(AuthContext);
@@ -11,12 +12,9 @@ const AddMessForm = () => {
 
   const [formData, setFormData] = useState({
     name: "",
-    ownerName: "",
-    mobile: "",
-    email: "",
-    address: "",
     location: "",
-    city: "",
+    email: "",
+    mobile: "",
     price_range: "",
     offer: "",
     pancard: null,
@@ -29,7 +27,7 @@ const AddMessForm = () => {
     { name: "", price: "", description: "", isVeg: true },
   ]);
 
-  // handle input changes
+  // Handle input
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     setFormData({ ...formData, [name]: files ? files[0] : value });
@@ -47,10 +45,11 @@ const AddMessForm = () => {
       { name: "", price: "", description: "", isVeg: true },
     ]);
 
+  // Step validation
   const validateStep = () => {
     if (step === 1) {
-      const { name, ownerName, mobile, email, address, city } = formData;
-      return name && ownerName && mobile && email && address && city;
+      const { name, location, email, mobile, price_range } = formData;
+      return name && location && email && mobile && price_range;
     }
     if (step === 2) {
       return menuItems.every((item) => item.name && item.price);
@@ -62,31 +61,41 @@ const AddMessForm = () => {
   };
 
   const nextStep = () => {
-    if (validateStep()) {
-      setStep((s) => s + 1);
-    } else {
-      Swal.fire({
-        icon: "warning",
-        title: "Incomplete Details",
-        text: "Please fill all required fields before continuing.",
-        confirmButtonColor: "#e23744",
-      });
-    }
+    if (validateStep()) setStep((s) => s + 1);
+    else Swal.fire("Incomplete Details", "Please fill all required fields.", "warning");
   };
 
   const prevStep = () => setStep((s) => s - 1);
 
+  // ✅ Submit Handler (sends to /mess-request)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const data = new FormData();
-      Object.keys(formData).forEach((key) => {
-        if (formData[key]) data.append(key, formData[key]);
-      });
-      data.append("menu", JSON.stringify({ items: menuItems }));
 
+      // Append all text fields
+      data.append("name", formData.name);
+      data.append("location", formData.location);
+      data.append("email", formData.email);
+      data.append("mobile", formData.mobile);
+      data.append("price_range", formData.price_range);
+      data.append("offer", formData.offer || "");
+
+      // Append menu JSON
+      data.append("menu", JSON.stringify(menuItems));
+
+      // Append document files
+      if (formData.pancard) data.append("pancard", formData.pancard);
+      if (formData.fssai) data.append("fssai", formData.fssai);
+      if (formData.menuPhoto) data.append("menuPhoto", formData.menuPhoto);
+      if (formData.bankDetails) data.append("bankDetails", formData.bankDetails);
+
+      // ✅ Debug log (optional)
+      for (let [key, val] of data.entries()) console.log(key, val);
+
+      // API CALL
       const res = await api.post("/mess-request", data, {
         headers: {
           Authorization: `Bearer ${user?.token}`,
@@ -94,24 +103,19 @@ const AddMessForm = () => {
         },
       });
 
-      if (res.data.success) {
-        // ✅ SweetAlert success popup
-        Swal.fire({
-          icon: "success",
-          title: "Mess Requested Successfully 🎉",
-          text: "Your mess request has been submitted successfully! Admin will review and approve it shortly.",
-          confirmButtonColor: "#e23744",
-        });
+      if (res.status === 201 || res.data.success) {
+        Swal.fire(
+          "Request Submitted 🎉",
+          "Your mess request has been sent for admin approval.",
+          "success"
+        );
 
-        // reset form
+        // Reset
         setFormData({
           name: "",
-          ownerName: "",
-          mobile: "",
-          email: "",
-          address: "",
           location: "",
-          city: "",
+          email: "",
+          mobile: "",
           price_range: "",
           offer: "",
           pancard: null,
@@ -122,26 +126,21 @@ const AddMessForm = () => {
         setMenuItems([{ name: "", price: "", description: "", isVeg: true }]);
         setStep(1);
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Submission Failed",
-          text: "Something went wrong while submitting your request.",
-          confirmButtonColor: "#e23744",
-        });
+        Swal.fire("Error", "Something went wrong while submitting.", "error");
       }
     } catch (err) {
       console.error("❌ Error submitting request:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Server Error",
-        text: "Failed to submit your mess request. Please try again later.",
-        confirmButtonColor: "#e23744",
-      });
+      const message =
+        err.response?.data?.errors?.map((e) => e.msg).join(", ") ||
+        err.response?.data?.message ||
+        "Server error. Try again.";
+      Swal.fire("Error", message, "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ UI Steps
   return (
     <div className="addmess-page">
       <div className="addmess-container">
@@ -149,214 +148,85 @@ const AddMessForm = () => {
         <aside className="onboarding-sidebar">
           <h3>Complete your registration</h3>
           <ul>
-            <li className={step === 1 ? "active" : step > 1 ? "done" : ""}>
-              🏠 Mess Information
-            </li>
-            <li className={step === 2 ? "active" : step > 2 ? "done" : ""}>
-              🍱 Menu Details
-            </li>
-            <li className={step === 3 ? "active" : step > 3 ? "done" : ""}>
-              📄 Required Documents
-            </li>
+            <li className={step === 1 ? "active" : step > 1 ? "done" : ""}>🏠 Mess Info</li>
+            <li className={step === 2 ? "active" : step > 2 ? "done" : ""}>🍱 Menu</li>
+            <li className={step === 3 ? "active" : step > 3 ? "done" : ""}>📄 Documents</li>
             <li className={step === 4 ? "active" : ""}>✅ Submit</li>
           </ul>
         </aside>
 
         {/* Form */}
         <form className="onboarding-form" onSubmit={handleSubmit}>
-          {/* Step 1 */}
+          {/* Step 1 - Basic Info */}
           {step === 1 && (
             <div className="form-step">
               <h2>Mess Information</h2>
-              <div className="form-card">
-                <h4>Basic Details</h4>
-                <div className="form-grid">
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Mess / Restaurant Name"
-                    value={formData.name}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="ownerName"
-                    placeholder="Owner Full Name"
-                    value={formData.ownerName}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Email Address"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="mobile"
-                    placeholder="Mobile Number"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                  />
-                </div>
+              <div className="form-grid">
+                <input name="name" placeholder="Mess / Restaurant Name" value={formData.name} onChange={handleChange} />
+                <input name="location" placeholder="Area / Locality" value={formData.location} onChange={handleChange} />
+                <input name="email" type="email" placeholder="Owner Email" value={formData.email} onChange={handleChange} />
+                <input name="mobile" type="tel" placeholder="Owner Mobile Number" value={formData.mobile} onChange={handleChange} />
+                <input name="price_range" placeholder="Average Price Range (₹100 - ₹200)" value={formData.price_range} onChange={handleChange} />
+                <input name="offer" placeholder="Special Offer (optional)" value={formData.offer} onChange={handleChange} />
               </div>
-
-              <div className="form-card">
-                <h4>Mess Address</h4>
-                <div className="form-grid">
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="Full Address"
-                    value={formData.address}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder="Area / Locality"
-                    value={formData.location}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="city"
-                    placeholder="City"
-                    value={formData.city}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="price_range"
-                    placeholder="Average Price Range (₹100 - ₹200)"
-                    value={formData.price_range}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <button type="button" className="next-btn" onClick={nextStep}>
-                Continue →
-              </button>
+              <button type="button" className="next-btn" onClick={nextStep}>Continue →</button>
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2 - Menu */}
           {step === 2 && (
             <div className="form-step">
               <h2>Menu Details</h2>
-              <div className="form-card">
-                {menuItems.map((item, i) => (
-                  <div key={i} className="menu-item-row">
-                    <input
-                      type="text"
-                      placeholder="Dish Name"
-                      value={item.name}
-                      onChange={(e) =>
-                        handleMenuChange(i, "name", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      placeholder="Price (₹)"
-                      value={item.price}
-                      onChange={(e) =>
-                        handleMenuChange(i, "price", e.target.value)
-                      }
-                    />
-                    <input
-                      type="text"
-                      placeholder="Description"
-                      value={item.description}
-                      onChange={(e) =>
-                        handleMenuChange(i, "description", e.target.value)
-                      }
-                    />
-                    <select
-                      value={item.isVeg ? "veg" : "non-veg"}
-                      onChange={(e) =>
-                        handleMenuChange(i, "isVeg", e.target.value === "veg")
-                      }
-                    >
-                      <option value="veg">Veg</option>
-                      <option value="non-veg">Non-Veg</option>
-                    </select>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="add-dish-btn"
-                  onClick={addMenuItem}
-                >
-                  + Add Another Dish
-                </button>
-              </div>
-
+              {menuItems.map((item, i) => (
+                <div key={i} className="menu-item-row">
+                  <input type="text" placeholder="Dish Name" value={item.name} onChange={(e) => handleMenuChange(i, "name", e.target.value)} />
+                  <input type="number" placeholder="Price (₹)" value={item.price} onChange={(e) => handleMenuChange(i, "price", e.target.value)} />
+                  <input type="text" placeholder="Description" value={item.description} onChange={(e) => handleMenuChange(i, "description", e.target.value)} />
+                  <select value={item.isVeg ? "veg" : "non-veg"} onChange={(e) => handleMenuChange(i, "isVeg", e.target.value === "veg")}>
+                    <option value="veg">Veg</option>
+                    <option value="non-veg">Non-Veg</option>
+                  </select>
+                </div>
+              ))}
+              <button type="button" className="add-dish-btn" onClick={addMenuItem}>+ Add Another Dish</button>
               <div className="nav-buttons">
-                <button type="button" onClick={prevStep} className="back-btn">
-                  ← Back
-                </button>
-                <button type="button" onClick={nextStep} className="next-btn">
-                  Continue →
-                </button>
+                <button type="button" onClick={prevStep} className="back-btn">← Back</button>
+                <button type="button" onClick={nextStep} className="next-btn">Continue →</button>
               </div>
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3 - Documents */}
           {step === 3 && (
             <div className="form-step">
-              <h2>Upload Required Documents</h2>
-              <div className="form-card upload-section">
-                <div className="upload-grid">
-                  {[
-                    { id: "pancard", label: "📄 PAN Card", name: "pancard" },
-                    { id: "fssai", label: "📎 FSSAI License", name: "fssai" },
-                    { id: "menuPhoto", label: "🍽️ Menu Photo", name: "menuPhoto" },
-                    { id: "bankDetails", label: "🏦 Bank Details", name: "bankDetails" },
-                  ].map((file) => (
-                    <div key={file.id} className="upload-box">
-                      <input
-                        type="file"
-                        id={file.id}
-                        name={file.name}
-                        onChange={handleChange}
-                      />
-                      <label htmlFor={file.id} className="upload-label">
-                        {file.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+              <h2>Upload Documents</h2>
+              <div className="upload-grid">
+                {[
+                  { id: "pancard", label: "📄 PAN Card", name: "pancard" },
+                  { id: "fssai", label: "📎 FSSAI License", name: "fssai" },
+                  { id: "menuPhoto", label: "🍽️ Menu Photo", name: "menuPhoto" },
+                  { id: "bankDetails", label: "🏦 Bank Details", name: "bankDetails" },
+                ].map((file) => (
+                  <div key={file.id} className="upload-box">
+                    <input type="file" id={file.id} name={file.name} onChange={handleChange} />
+                    <label htmlFor={file.id} className="upload-label">{file.label}</label>
+                  </div>
+                ))}
               </div>
-
               <div className="nav-buttons">
-                <button type="button" onClick={prevStep} className="back-btn">
-                  ← Back
-                </button>
-                <button type="button" onClick={nextStep} className="next-btn">
-                  Continue →
-                </button>
+                <button type="button" onClick={prevStep} className="back-btn">← Back</button>
+                <button type="button" onClick={nextStep} className="next-btn">Continue →</button>
               </div>
             </div>
           )}
 
-          {/* Step 4 */}
+          {/* Step 4 - Submit */}
           {step === 4 && (
             <div className="form-step">
-              <h2>Review and Submit</h2>
-              <div className="form-card review-section">
-                <p>
-                  Please review your mess details before submitting.
-                  Once approved, your mess will appear in MessMate.
-                </p>
-              </div>
-
+              <h2>Review & Submit</h2>
+              <p>Please review your details before submitting. Once approved by admin, your mess will appear in MessMate.</p>
               <div className="review-buttons">
-                <button type="button" onClick={prevStep} className="back-btn">
-                  ← Back
-                </button>
+                <button type="button" onClick={prevStep} className="back-btn">← Back</button>
                 <button type="submit" className="submit-btn" disabled={loading}>
                   {loading ? "Submitting..." : "Submit Request"}
                 </button>

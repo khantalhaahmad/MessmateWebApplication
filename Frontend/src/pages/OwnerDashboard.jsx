@@ -6,12 +6,10 @@ import {
   Users,
   Star,
   LogOut,
-  Plus,
   Settings,
   TrendingUp,
   Bell,
   IndianRupee,
-  Trash2,
   Home,
 } from "lucide-react";
 import { Bar } from "react-chartjs-2";
@@ -26,6 +24,7 @@ import {
 import api from "../services/api";
 import { AuthContext } from "../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -39,81 +38,75 @@ const OwnerDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [showAddDishForm, setShowAddDishForm] = useState(false);
-  const [newDish, setNewDish] = useState({ name: "", price: "", image: "" });
 
-  // ✅ Fetch data
+  const token = localStorage.getItem("token");
+  const config = { headers: { Authorization: `Bearer ${token}` } };
+
+  /* ============================================================
+     🚀 Fetch Owner Dashboard Data
+  ============================================================ */
   useEffect(() => {
     if (!user?._id) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [menuRes, orderRes, reviewRes, statRes] = await Promise.all([
-          api.get(`/owner/${user._id}/menu`),
-          api.get(`/owner/${user._id}/orders`),
-          api.get(`/owner/${user._id}/reviews`),
-          api.get(`/owner/${user._id}/stats`),
+        console.log("📡 Fetching owner dashboard data...");
+
+        const [menuRes, orderRes, reviewRes, statRes] = await Promise.allSettled([
+          api.get(`/messes?owner_id=${user._id}`, config),
+          api.get(`/orders/owner/${user._id}`, config),
+          api.get(`/reviews/owner/${user._id}`, config),
+          api.get(`/owner/${user._id}/stats`, config), // ✅ FIXED endpoint
         ]);
 
-        setMenu(menuRes.data.data || menuRes.data || []);
-        setOrders(orderRes.data.data || orderRes.data || []);
-        setReviews(reviewRes.data.data || reviewRes.data || []);
-        setStats(statRes.data || {});
+        const safe = (res) => res.value?.data?.data || res.value?.data || [];
+
+        const messData = safe(menuRes);
+        const ownerMenu = messData[0]?.menu?.items || [];
+
+        setMenu(ownerMenu);
+        setOrders(safe(orderRes).orders || safe(orderRes) || []);
+        setReviews(safe(reviewRes).reviews || safe(reviewRes) || []);
+        setStats(statRes.value?.data || {});
+
+        console.log("✅ Owner dashboard loaded successfully");
       } catch (err) {
-        console.error("❌ Error fetching owner dashboard data:", err);
+        console.error("❌ Owner dashboard fetch failed:", err);
+        Swal.fire("Error", "Unable to load dashboard data. Please refresh.", "error");
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [user]);
 
-  // ✅ Add dish
-  const handleAddDish = async (e) => {
-    e.preventDefault();
-    try {
-      const messRes = await api.get(`/messes?owner_id=${user._id}`);
-      const mess = messRes.data[0];
-      if (!mess) return alert("You don’t have a mess yet.");
-
-      const res = await api.post(`/messes/${mess.mess_id}/menu`, newDish);
-      setMenu(res.data.menu.items);
-      setNewDish({ name: "", price: "", image: "" });
-      setShowAddDishForm(false);
-    } catch (err) {
-      console.error("❌ Error adding dish:", err);
-    }
-  };
-
-  // ✅ Delete dish
-  const handleDeleteDish = async (index) => {
-    try {
-      const messRes = await api.get(`/messes?owner_id=${user._id}`);
-      const mess = messRes.data[0];
-      if (!mess) return alert("You don’t have a mess yet.");
-
-      await api.delete(`/messes/${mess.mess_id}/menu/${index}`);
-      setMenu(menu.filter((_, i) => i !== index));
-    } catch (err) {
-      console.error("❌ Error deleting dish:", err);
-    }
-  };
-
+  /* ============================================================
+     🚪 Logout
+  ============================================================ */
   const handleLogoutClick = () => setShowLogoutPopup(true);
   const handleCancelLogout = () => setShowLogoutPopup(false);
   const handleConfirmLogout = () => {
     localStorage.clear();
-    window.location.href = "/";
+    navigate("/");
   };
+
   const handleGoHome = () => navigate("/");
 
-  // ✅ Chart Data
+  /* ============================================================
+     📊 Chart Data
+  ============================================================ */
   const weeklyData = {
-    labels: stats.weeklyLabels || [],
+    labels: stats.weeklyLabels?.length
+      ? stats.weeklyLabels
+      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     datasets: [
       {
         label: "Orders",
-        data: stats.weeklyOrders || [0, 0, 0, 0, 0, 0, 0],
+        data: Array.isArray(stats.weeklyOrders)
+          ? stats.weeklyOrders
+          : [0, 0, 0, 0, 0, 0, 0],
         backgroundColor: "#ff5722",
         borderRadius: 6,
       },
@@ -121,19 +114,26 @@ const OwnerDashboard = () => {
   };
 
   const revenueData = {
-    labels: stats.monthlyLabels || [],
+    labels: stats.monthlyLabels?.length
+      ? stats.monthlyLabels
+      : ["Week 1", "Week 2", "Week 3", "Week 4"],
     datasets: [
       {
         label: "Revenue (₹)",
-        data: stats.monthlyRevenue || [0, 0, 0, 0],
+        data: Array.isArray(stats.monthlyRevenue)
+          ? stats.monthlyRevenue
+          : [0, 0, 0, 0],
         backgroundColor: "#4caf50",
         borderRadius: 6,
       },
     ],
   };
 
-  if (loading) return <p className="loading-text">Loading Dashboard...</p>;
+  if (loading) return <p className="loading-text">Loading Owner Dashboard...</p>;
 
+  /* ============================================================
+     🧭 Render UI
+  ============================================================ */
   return (
     <div className="owner-dashboard">
       {/* Sidebar */}
@@ -156,37 +156,39 @@ const OwnerDashboard = () => {
             <Settings size={18} /> <span>Settings</span>
           </a>
         </nav>
+
         <button className="menu-item go-home-btn" onClick={handleGoHome}>
           <Home size={18} /> <span>Go to Home</span>
         </button>
+
         <button className="logout-btn" onClick={handleLogoutClick}>
           <LogOut size={18} /> <span>Logout</span>
         </button>
       </aside>
 
-      {/* Main Section */}
+      {/* Main */}
       <main className="main">
         <div className="header">
           <div>
             <h2>Welcome, {user?.name || "Owner"} 👋</h2>
-            <p>Track and manage your mess efficiently</p>
+            <p>Manage your mess smartly with live insights</p>
           </div>
-          <div className="notifications">
-            <Bell size={24} />
-          </div>
+          <Bell size={22} />
         </div>
 
-        {/* Overview */}
+        {/* Overview Cards */}
         <section id="overview" className="owner-stats">
           <div className="card">
             <Utensils className="icon orange" />
             <h3>Total Orders</h3>
-            <p>{stats.totalOrders || 0}</p>
+            <p>{orders.length || 0}</p>
           </div>
           <div className="card">
             <IndianRupee className="icon green" />
             <h3>Total Revenue</h3>
-            <p>₹{stats.totalRevenue || 0}</p>
+            <p>
+              ₹{orders.reduce((sum, o) => sum + (o.total_price || 0), 0)}
+            </p>
           </div>
           <div className="card">
             <Users className="icon blue" />
@@ -195,7 +197,7 @@ const OwnerDashboard = () => {
           </div>
           <div className="card">
             <Star className="icon yellow" />
-            <h3>Average Rating</h3>
+            <h3>Avg Rating</h3>
             <p>{(stats.avgRating || 0).toFixed(1)}/5</p>
           </div>
         </section>
@@ -204,15 +206,29 @@ const OwnerDashboard = () => {
         <section className="charts">
           <div className="chart-box">
             <h3>Weekly Orders 📦</h3>
-            <Bar data={weeklyData} />
+            <Bar
+              data={weeklyData}
+              options={{
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+              }}
+            />
           </div>
           <div className="chart-box">
             <h3>Monthly Revenue 💰</h3>
-            <Bar data={revenueData} />
+            <Bar
+              data={revenueData}
+              options={{
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } },
+              }}
+            />
           </div>
         </section>
 
-        {/* Orders */}
+        {/* Orders Table */}
         <section id="orders" className="recent-orders">
           <h3>Recent Orders 🧾</h3>
           <table>
@@ -221,7 +237,7 @@ const OwnerDashboard = () => {
                 <th>Order ID</th>
                 <th>Mess</th>
                 <th>Items</th>
-                <th>Total Price</th>
+                <th>Total</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -229,23 +245,25 @@ const OwnerDashboard = () => {
               {orders.length > 0 ? (
                 orders.map((o) => (
                   <tr key={o._id}>
-                    <td>{o._id.slice(-6).toUpperCase()}</td>
-                    <td>{o.mess_name}</td>
+                    <td>{o._id?.slice(-6)?.toUpperCase()}</td>
+                    <td>{o.mess_name || "N/A"}</td>
                     <td>
-                      {o.items.map((item, i) => (
-                        <div key={i}>
-                          {item.name} × {item.quantity}
-                        </div>
-                      ))}
+                      {Array.isArray(o.items)
+                        ? o.items.map((i, idx) => (
+                            <div key={idx}>
+                              {i.name} × {i.quantity}
+                            </div>
+                          ))
+                        : "-"}
                     </td>
-                    <td>₹{o.total_price}</td>
-                    <td>{o.status}</td>
+                    <td>₹{o.total_price || 0}</td>
+                    <td>{o.status || "Pending"}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
-                    No orders yet.
+                    No orders found
                   </td>
                 </tr>
               )}
@@ -260,8 +278,8 @@ const OwnerDashboard = () => {
             {reviews.length > 0 ? (
               reviews.map((r) => (
                 <div key={r._id} className="review-card">
-                  <h4>{r.user_name || "Anonymous"}</h4>
-                  <p>"{r.comment}"</p>
+                  <h4>{r.user_id?.name || r.user_name || "Anonymous"}</h4>
+                  <p>"{r.comment || "No comment"}"</p>
                   <span>{"⭐".repeat(r.rating || 0)}</span>
                 </div>
               ))

@@ -19,51 +19,53 @@ const AdminOwners = () => {
   useEffect(() => {
     const fetchOwners = async () => {
       try {
-        const res = await api.get("/admin-extra/owners", config);
-        setOwners(res.data);
-        setFilteredOwners(res.data);
+        const res = await api.get("/admin/owners", config);
+        const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setOwners(data);
+        setFilteredOwners(data);
       } catch (err) {
         console.error("❌ Failed to fetch owners:", err);
+        setOwners([]);
+        setFilteredOwners([]);
       } finally {
         setLoading(false);
       }
     };
     fetchOwners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const lowerSearch = search.toLowerCase();
-    const filtered = owners.filter(
-      (o) =>
-        o.ownerName.toLowerCase().includes(lowerSearch) ||
-        o.email.toLowerCase().includes(lowerSearch) ||
-        o.messes.some((m) => m.toLowerCase().includes(lowerSearch))
-    );
+    const lowerSearch = (search || "").toLowerCase();
+    const filtered = owners.filter((o) => {
+      const ownerName = (o.ownerName || "").toLowerCase();
+      const email = (o.email || "").toLowerCase();
+      const messesArr = Array.isArray(o.messes) ? o.messes : [];
+      return (
+        ownerName.includes(lowerSearch) ||
+        email.includes(lowerSearch) ||
+        messesArr.some((m) => (m || "").toLowerCase().includes(lowerSearch))
+      );
+    });
     setFilteredOwners(filtered);
   }, [search, owners]);
 
-  if (loading)
-    return <div className="admin-loading-screen">Loading Mess Owners...</div>;
+  if (loading) return <div className="admin-loading-screen">Loading Mess Owners...</div>;
 
   return (
     <div className="admin-dashboard">
-      {/* ===== HEADER NAVBAR ===== */}
       <header className="admin-header">
         <h1>👨‍🍳 Mess Owners</h1>
         <div className="admin-header-right">
           <div className="admin-info">
             <span className="admin-name">{user?.name || "Admin"}</span>
           </div>
-          <button
-            className="logout-btn"
-            onClick={() => navigate("/admin/dashboard")}
-          >
+          <button className="logout-btn" onClick={() => navigate("/admin/dashboard")}>
             ← Back to Dashboard
           </button>
         </div>
       </header>
 
-      {/* ===== SEARCH BAR (LEFT ALIGNED) ===== */}
       <section className="search-section left-align">
         <div className="search-container">
           <span className="search-icon">🔍</span>
@@ -77,7 +79,6 @@ const AdminOwners = () => {
         </div>
       </section>
 
-      {/* ===== OWNERS TABLE ===== */}
       <section className="table-section">
         <table className="earnings-table">
           <thead>
@@ -91,9 +92,9 @@ const AdminOwners = () => {
             {filteredOwners.length > 0 ? (
               filteredOwners.map((o, i) => (
                 <tr key={i}>
-                  <td>{o.ownerName}</td>
-                  <td>{o.email}</td>
-                  <td>{o.messes.length > 0 ? o.messes.join(", ") : "—"}</td>
+                  <td>{o.ownerName || "—"}</td>
+                  <td>{o.email || "—"}</td>
+                  <td>{Array.isArray(o.messes) && o.messes.length > 0 ? o.messes.join(", ") : "—"}</td>
                 </tr>
               ))
             ) : (

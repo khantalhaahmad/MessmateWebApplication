@@ -28,16 +28,21 @@ const DeliveryJoin = () => {
     setMessage("");
 
     try {
-      await api.post("/admin/delivery-request", formData);
-      setMessage("✅ Your request has been submitted successfully!");
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        city: "",
-        vehicleType: "",
-        vehicleNumber: "",
-      });
+      // keep compatibility with your frontend usage: POST to admin route
+      const res = await api.post("/admin/delivery-request", formData);
+      if (res.status === 201 || res.status === 200) {
+        setMessage("✅ Your request has been submitted successfully!");
+        setFormData({
+          name: "",
+          phone: "",
+          email: "",
+          city: "",
+          vehicleType: "",
+          vehicleNumber: "",
+        });
+      } else {
+        setMessage("❌ Something went wrong. Please try again later.");
+      }
     } catch (err) {
       console.error("Error submitting form:", err);
       setMessage("❌ Something went wrong. Please try again later.");
@@ -48,7 +53,6 @@ const DeliveryJoin = () => {
 
   return (
     <div className="delivery-join-container">
-      {/* 🔹 Top Bar with Home Button */}
       <div className="delivery-join-header">
         <button className="home-btn" onClick={() => navigate("/")}>
           🏠 Home
