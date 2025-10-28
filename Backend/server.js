@@ -26,7 +26,7 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 }));
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://messmate-web-application-oplclrryx-talha-ahmed-khans-projects.vercel.app", // ✅ Your Vercel Deployment URL
+  "https://messmate-web-application-vrdk.vercel.app", // ✅ Your Vercel Deployment URL
 ];
 
 app.use(
