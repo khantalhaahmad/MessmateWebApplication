@@ -4,6 +4,7 @@ import api from "../services/api";
 import "../styles/AdminDashboard.css";
 import { AuthContext } from "../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const AdminOwners = () => {
   const [owners, setOwners] = useState([]);
@@ -19,12 +20,15 @@ const AdminOwners = () => {
   useEffect(() => {
     const fetchOwners = async () => {
       try {
-        const res = await api.get("/admin/owners", config);
-        const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        const res = await api.get("/admin/owners", config); // ✅ fixed route
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
         setOwners(data);
         setFilteredOwners(data);
       } catch (err) {
         console.error("❌ Failed to fetch owners:", err);
+        Swal.fire("Error", "Failed to load mess owners.", "error");
         setOwners([]);
         setFilteredOwners([]);
       } finally {
@@ -32,9 +36,9 @@ const AdminOwners = () => {
       }
     };
     fetchOwners();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 🔍 Search Filter
   useEffect(() => {
     const lowerSearch = (search || "").toLowerCase();
     const filtered = owners.filter((o) => {
@@ -44,28 +48,39 @@ const AdminOwners = () => {
       return (
         ownerName.includes(lowerSearch) ||
         email.includes(lowerSearch) ||
-        messesArr.some((m) => (m || "").toLowerCase().includes(lowerSearch))
+        messesArr.some((m) =>
+          (m || "").toLowerCase().includes(lowerSearch)
+        )
       );
     });
     setFilteredOwners(filtered);
   }, [search, owners]);
 
-  if (loading) return <div className="admin-loading-screen">Loading Mess Owners...</div>;
+  if (loading)
+    return (
+      <div className="admin-loading-screen">
+        <div className="spinner"></div>
+        <p>Loading Mess Owners...</p>
+      </div>
+    );
 
   return (
     <div className="admin-dashboard">
+      {/* HEADER */}
       <header className="admin-header">
         <h1>👨‍🍳 Mess Owners</h1>
         <div className="admin-header-right">
-          <div className="admin-info">
-            <span className="admin-name">{user?.name || "Admin"}</span>
-          </div>
-          <button className="logout-btn" onClick={() => navigate("/admin/dashboard")}>
+          <span className="admin-name">{user?.name || "Admin"}</span>
+          <button
+            className="logout-btn"
+            onClick={() => navigate("/admin/dashboard")}
+          >
             ← Back to Dashboard
           </button>
         </div>
       </header>
 
+      {/* SEARCH */}
       <section className="search-section left-align">
         <div className="search-container">
           <span className="search-icon">🔍</span>
@@ -79,13 +94,14 @@ const AdminOwners = () => {
         </div>
       </section>
 
+      {/* TABLE */}
       <section className="table-section">
         <table className="earnings-table">
           <thead>
             <tr>
-              <th>OWNER NAME</th>
-              <th>EMAIL</th>
-              <th>MESSES OWNED</th>
+              <th>Owner Name</th>
+              <th>Email</th>
+              <th>Messes Owned</th>
             </tr>
           </thead>
           <tbody>
@@ -94,7 +110,11 @@ const AdminOwners = () => {
                 <tr key={i}>
                   <td>{o.ownerName || "—"}</td>
                   <td>{o.email || "—"}</td>
-                  <td>{Array.isArray(o.messes) && o.messes.length > 0 ? o.messes.join(", ") : "—"}</td>
+                  <td>
+                    {Array.isArray(o.messes) && o.messes.length > 0
+                      ? o.messes.join(", ")
+                      : "—"}
+                  </td>
                 </tr>
               ))
             ) : (

@@ -8,14 +8,14 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 /* ============================================================
-   ✅ MAIN ROUTE: Get Owner Dashboard Stats
+   ✅ MAIN ROUTE: Get Owner Dashboard Stats (Fixed & Optimized)
    ============================================================ */
 router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
   try {
     const { ownerId } = req.params;
     console.log("📊 Owner stats route hit for ID:", ownerId);
 
-    // Step 1: Find all messes owned by this owner (string or ObjectId)
+    // Step 1️⃣: Find all messes owned by this owner
     const messes = await Mess.find({
       $or: [
         { owner_id: ownerId },
@@ -25,7 +25,7 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
 
     console.log(`✅ Found ${messes.length} mess(es) for owner ${ownerId}`);
 
-    // Step 2: Return empty stats if no mess found
+    // Step 2️⃣: Return empty if no mess found
     if (!messes.length) {
       return res.json({
         totalOrders: 0,
@@ -38,13 +38,24 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       });
     }
 
-    // Step 3: Extract mess IDs
-    const messIds = messes.map((m) => m.mess_id?.toString() || m._id.toString());
+    // Step 3️⃣: Extract mess IDs (both ObjectId + numeric)
+    const messObjectIds = messes.map((m) => m._id);
+    const messNumericIds = messes
+      .map((m) => (m.mess_id ? Number(m.mess_id) : null))
+      .filter((id) => !isNaN(id));
 
-    // Step 4: Fetch orders for those messes
-    const orders = await Order.find({ mess_id: { $in: messIds } });
-    console.log(`📦 Found ${orders.length} order(s) for messes:`, messIds);
+    // Step 4️⃣: Fetch all orders belonging to these messes
+    const orders = await Order.find({
+      $or: [
+        { mess_id: { $in: messNumericIds } },
+        { mess_id: { $in: messObjectIds.map((id) => id.toString()) } },
+        { mess_id: { $in: messObjectIds } },
+      ],
+    });
 
+    console.log(`📦 Found ${orders.length} order(s) for owner ${ownerId}`);
+
+    // Step 5️⃣: Calculate key stats
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce(
       (sum, o) => sum + (o.total_price || 0),
@@ -54,17 +65,26 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       orders.map((o) => o.user_id?.toString())
     ).size;
 
-    // Step 5: Fetch reviews safely
+    // Step 6️⃣: Fetch all reviews for these messes
     let reviews = [];
     try {
+      const reviewMessIds = [
+        ...messObjectIds.map((id) => id.toString()),
+        ...messNumericIds.map((id) => id.toString()),
+      ];
+
       reviews = await Review.find({
-        mess_id: { $in: messIds.map((id) => id.toString()) },
+        mess_id: { $in: reviewMessIds },
       });
     } catch (err) {
       console.error("⚠️ Skipping ObjectId cast for reviews:", err.message);
+      const reviewMessIds = [
+        ...messObjectIds.map((id) => id.toString()),
+        ...messNumericIds.map((id) => id.toString()),
+      ];
       reviews = await Review.find({
         mess_id: {
-          $in: messIds.map((id) =>
+          $in: reviewMessIds.map((id) =>
             mongoose.isValidObjectId(id)
               ? new mongoose.Types.ObjectId(id)
               : id
@@ -73,14 +93,15 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`⭐ Found ${reviews.length} review(s) for messes:`, messIds);
+    console.log(`⭐ Found ${reviews.length} review(s)`);
 
+    // Step 7️⃣: Average Rating
     const avgRating =
       reviews.length > 0
         ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
         : 0;
 
-    // Step 6: Weekly & Monthly calculations
+    // Step 8️⃣: Weekly Orders & Monthly Revenue
     const weeklyOrders = Array(7).fill(0);
     const monthlyRevenue = Array(4).fill(0);
 
@@ -92,30 +113,38 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       }
     });
 
-    // Step 7: Prepare recent 5 orders
+    // Step 9️⃣: Recent 5 Orders
     const recentOrders = orders
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5)
       .map((o) => ({
         orderId: o._id,
         messId: o.mess_id,
+        messName:
+          messes.find(
+            (m) =>
+              m.mess_id?.toString() === o.mess_id?.toString() ||
+              m._id?.toString() === o.mess_id?.toString()
+          )?.name || "Unknown Mess",
         items: o.items || [],
         totalPrice: o.total_price || 0,
         status: o.status || "Pending",
       }));
 
-    // Step 8: Send response
+    // Step 🔟: Send JSON Response
     res.json({
       totalOrders,
       totalRevenue,
       activeCustomers,
-      avgRating,
+      avgRating: Number(avgRating.toFixed(1)),
       weeklyOrders,
       monthlyRevenue,
       weeklyLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       monthlyLabels: ["Week 1", "Week 2", "Week 3", "Week 4"],
       recentOrders,
     });
+
+    console.log("✅ Owner stats sent successfully");
   } catch (error) {
     console.error("💥 Error generating stats:", error);
     res.status(500).json({

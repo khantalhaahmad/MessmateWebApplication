@@ -1,971 +1,371 @@
-/* ===== General Layout ===== */
+/* ==============================================
+   🌟 MESSMATE ADMIN DASHBOARD — PREMIUM V3
+   ============================================== */
+
+:root {
+  --primary: #6c63ff;
+  --accent: #00c9a7;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #fbbf24;
+  --bg: #f5f7fb;
+  --card-bg: #ffffff;
+  --text-dark: #1e293b;
+  --radius: 18px;
+  --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --soft-shadow: 0 4px 16px rgba(108, 99, 255, 0.15);
+  --gradient: linear-gradient(135deg, #6c63ff 0%, #00c9a7 100%);
+}
+
+/* 🌐 GLOBAL LAYOUT */
 .admin-dashboard {
-  background-color: #f5f6fa;
-  min-height: 100vh;
-  font-family: "Segoe UI", Roboto, sans-serif;
-  color: #333;
-}
-
-/* ===== Header Bar ===== */
-.admin-header {
-  background-color: #2b3a67;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 30px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.admin-header h1 {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.admin-header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.admin-info {
-  font-weight: 500;
-}
-
-.admin-date {
-  font-size: 14px;
-  color: #cfd8e3;
-}
-
-.logout-btn {
-  background-color: #e63946;
-  border: none;
-  color: white;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.logout-btn:hover {
-  background-color: #d62828;
-}
-
-/* ===== Summary Cards ===== */
-.summary-section {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-  margin: 30px auto;
-  padding: 0 20px;
-}
-
-.summary-card {
-  flex: 1 1 200px;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  text-align: center;
-  transition: transform 0.2s ease;
-}
-
-.summary-card:hover {
-  transform: translateY(-3px);
-}
-
-.summary-card h3 {
-  font-size: 16px;
-  color: #555;
-  margin-bottom: 8px;
-}
-
-.summary-card p {
-  font-size: 26px;
-  font-weight: bold;
-  color: #2b3a67;
-}
-
-/* ===== Table Section ===== */
-.table-section {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin: 30px auto;
-  padding: 25px;
-  max-width: 1100px;
-}
-
-.table-section h2 {
-  font-size: 20px;
-  color: #2b3a67;
-  margin-bottom: 15px;
-}
-
-.earnings-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.earnings-table th,
-.earnings-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e1e1e1;
-  text-align: left;
-}
-
-.earnings-table th {
-  background-color: #f0f0f0;
-  font-weight: 600;
-  color: #333;
-}
-
-.earnings-table tr:hover {
-  background-color: #f9f9f9;
-}
-
-.earning-value {
-  font-weight: 600;
-  color: #007f5f;
-}
-
-.no-data {
-  text-align: center;
-  color: #888;
-  padding: 20px;
-}
-
-/* ===== Loading Screen ===== */
-.admin-loading-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  height: 100vh;
-  color: #444;
-}
-.date-filter {
-  background: #fff;
-  padding: 1.5rem;
-  margin: 1.5rem 0;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.date-filter h3 {
-  margin-bottom: 1rem;
-  color: #2b3a67;
-  font-weight: 600;
-}
-
-.date-inputs {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.date-inputs input {
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.date-inputs button {
-  background-color: #2b3a67;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-
-.date-inputs button:hover {
-  background-color: #3d4e87;
-}
-/* ======= Base Layout ======= */
-.admin-dashboard {
-  padding: 25px 50px;
-  background-color: #f7f8fc;
-  min-height: 100vh;
+  background: var(--bg);
   font-family: "Inter", sans-serif;
+  color: var(--text-dark);
+  padding: 2rem 2.5rem;
+  min-height: 100vh;
 }
+
+/* ===============================
+   🧭 PREMIUM HEADER FIXED LAYOUT
+   =============================== */
 
 .admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #2b3a67;
-  color: white;
-  padding: 18px 28px;
-  border-radius: 10px;
-  margin-bottom: 30px;
-}
-
-.admin-header h1 {
-  font-size: 1.6rem;
-  margin: 0;
-}
-
-.logout-btn {
-  background: #ff4b4b;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
-.logout-btn:hover {
-  background: #ff2d2d;
-}
-
-/* ======= Summary Cards ======= */
-.summary-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.summary-card {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  text-align: center;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: 0.25s;
-}
-
-.summary-card:hover {
-  transform: translateY(-3px);
-}
-
-.summary-card.clickable {
-  cursor: pointer;
-  border: 2px solid transparent;
-}
-
-.summary-card.clickable:hover {
-  border-color: #2b3a67;
-}
-
-/* ======= Chart & Table Sections ======= */
-.table-section,
-.chart-section {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-  margin-bottom: 25px;
-}
-
-.table-section h2,
-.chart-section h2 {
-  color: #1f2a44;
-  font-weight: 700;
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-}
-
-/* ======= Tables ======= */
-.earnings-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.earnings-table th {
-  background-color: #f0f1f6;
-  color: #2b3a67;
-  font-weight: 700;
-  text-align: left;
-  padding: 10px 15px;
-}
-
-.earnings-table td {
-  padding: 10px 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.earnings-table tr:hover {
-  background-color: #f9fafc;
-}
-
-/* ======= Date Filter ======= */
-.date-filter {
-  background: white;
-  padding: 15px 20px;
-  margin-bottom: 30px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.date-filter h3 {
-  margin-bottom: 10px;
-  color: #1f2a44;
-}
-
-.date-inputs {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.date-inputs input,
-.date-inputs button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.date-inputs button {
-  background: #2b3a67;
-  color: white;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.date-inputs button:hover {
-  background: #3d4d85;
-}
-
-/* ======= States ======= */
-.no-data {
-  text-align: center;
-  padding: 15px;
-  color: #888;
-  font-style: italic;
-}
-
-.admin-loading-screen {
-  text-align: center;
-  margin-top: 80px;
-  font-size: 1.2rem;
-  color: #555;
-}
-/* ===== STATUS DROPDOWN (Owner Payouts) ===== */
-.status-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.status-select {
-  padding: 6px 14px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: white;
-  cursor: pointer;
-  outline: none;
-  text-align: center;
-  transition: all 0.25s ease-in-out;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-}
-
-/* Pending Style */
-.status-select.pending {
-  background-color: #f5a623; /* Orange-yellow */
-}
-
-.status-select.pending:hover {
-  background-color: #e69500;
-}
-
-/* Paid Style */
-.status-select.paid {
-  background-color: #27ae60; /* Green */
-}
-
-.status-select.paid:hover {
-  background-color: #1e8e50;
-}
-
-/* Smooth hover transition for select box */
-.status-select:hover {
-  transform: translateY(-2px);
-}
-
-.status-select option {
-  color: #333;
-  background-color: #fff;
-}
-
-/* Optional: add light animation feedback */
-@keyframes pulseSuccess {
-  0% {
-    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
-  }
-}
-
-.status-select.paid:focus {
-  animation: pulseSuccess 1s;
-}
-/* ===== SEARCH BAR STYLING ===== */
-.search-section {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 1.8rem 0;
-}
-
-.search-container {
-  position: relative;
-  width: 350px;
-  transition: all 0.3s ease;
-}
-
-.search-container:focus-within {
-  transform: scale(1.03);
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #555;
-  font-size: 1.1rem;
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: 10px 14px 10px 38px;
-  border: 1px solid #ccc;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: all 0.3s ease;
-  background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.search-input::placeholder {
-  color: #999;
-  font-size: 0.9rem;
-}
-
-.search-input:focus {
-  border-color: #1d3557;
-  box-shadow: 0 0 6px rgba(29, 53, 87, 0.3);
-}
-
-/* ===== TABLE IMPROVEMENTS ===== */
-.earnings-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
-}
-
-.earnings-table thead {
-  background-color: #ff7043;
-  color: white;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.9rem;
-}
-
-.earnings-table th,
-.earnings-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.earnings-table tbody tr:hover {
-  background-color: #f9fafc;
-  transition: background-color 0.2s ease;
-}
-
-.no-data {
-  text-align: center;
-  color: #888;
-  font-style: italic;
-  padding: 1rem;
-}
-/* ===== HEADER IMPROVEMENTS ===== */
-.admin-header {
-  background-color: #1d3557;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: linear-gradient(90deg, #6c63ff 0%, #00c9a7 100%);
+  color: #fff;
   padding: 1.2rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  margin-bottom: 1.2rem;
-}
-
-.admin-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(108, 99, 255, 0.25);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-}
-
-.admin-header-right {
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; /* ✅ ensures proper wrapping on smaller screens */
   gap: 1rem;
 }
 
-.admin-info {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.admin-name {
-  color: #fff;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-/* ===== BACK BUTTON ===== */
-.logout-btn {
-  background-color: #e63946;
-  color: white;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.logout-btn:hover {
-  background-color: #d62828;
-}
-
-/* ===== SEARCH BAR LEFT-ALIGNED ===== */
-.search-section.left-align {
-  display: flex;
-  justify-content: flex-start;
-  margin: 1rem 2rem;
-}
-
-.search-container {
-  position: relative;
-  width: 320px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #777;
-  opacity: 0.6;
-}
-
-.search-input {
-  width: 100%;
-  padding: 10px 14px 10px 36px;
-  border: 1px solid #ccc;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  outline: none;
-  background: #fff;
-  transition: all 0.3s ease;
-}
-
-.search-input:focus {
-  border-color: #1d3557;
-  box-shadow: 0 0 6px rgba(29, 53, 87, 0.3);
-}
-
-/* ===== TABLE POLISH ===== */
-.table-section {
-  margin: 1.5rem 2rem;
-}
-
-.earnings-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
-}
-
-.earnings-table thead {
-  background-color: #f1f3f5;
-  color: #1d3557;
-  font-weight: 700;
-}
-
-.earnings-table th,
-.earnings-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.earnings-table tbody tr:hover {
-  background-color: #f9fafc;
-}
-
-.no-data {
-  text-align: center;
-  color: #888;
-  font-style: italic;
-  padding: 1rem;
-}
-/* ===========================
-   🌟 ADMIN DASHBOARD NAVBAR
-   =========================== */
-
-.admin-header {
-  background-color: #1e3a8a;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 40px;
-  border-radius: 14px 14px 0 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  margin-bottom: 30px;
-  position: sticky;
-  top: 0;
-  z-index: 999;
-}
-
-/* -------- LEFT (Title) -------- */
-.header-left h1 {
-  font-size: 23px;
-  font-weight: 700;
-  margin: 0;
+.header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.75rem;
 }
 
-/* -------- CENTER (Home + Time) -------- */
 .header-center {
   display: flex;
   align-items: center;
-  gap: 18px;
-  flex: 1;
+  gap: 1.5rem; /* ✅ spacing between home and time */
+  flex-wrap: wrap;
   justify-content: center;
+  text-align: center;
 }
 
-.datetime {
-  background-color: #2b4bb2;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 210px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
-}
-
-/* -------- RIGHT (User Info + Logout) -------- */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 1rem; /* ✅ space between name and logout */
 }
 
-/* User Info Badge */
-.admin-info {
-  background: linear-gradient(145deg, #2f53c4, #1e3a8a);
-  padding: 8px 20px;
-  border-radius: 50px;
-  text-align: center;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
-}
+/* ===============================
+   🎯 BUTTONS & TEXT STYLING
+   =============================== */
 
-.admin-name {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.admin-subtext {
-  margin: 0;
-  font-size: 12px;
-  color: #d4d4d4;
-  font-style: italic;
-}
-
-/* -------- BUTTONS -------- */
-.home-btn,
-.logout-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-}
-
-/* Make Home button pop slightly */
 .home-btn {
-  gap: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
 }
 
 .home-btn:hover {
+  background: #fff;
+  color: #6c63ff;
   transform: translateY(-2px);
 }
 
-/* Make Logout button stand out a bit more */
-.logout-btn:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
-}
-
-/* -------- Responsive Fix -------- */
-@media (max-width: 992px) {
-  .admin-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-    gap: 12px;
-  }
-
-  .header-center {
-    justify-content: flex-start;
-    width: 100%;
-  }
-
-  .header-right {
-    justify-content: flex-start;
-    width: 100%;
-    gap: 12px;
-  }
-
-  .admin-info {
-    padding: 6px 14px;
-    border-radius: 14px;
-  }
-  /* -------- ADMIN INFO (Name Badge) -------- */
-.admin-info {
-  background: linear-gradient(145deg, #2f53c4, #1d3a92);
-  padding: 8px 24px;
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25),
-              inset 0 1px 2px rgba(255, 255, 255, 0.15);
+.datetime {
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0.95;
   white-space: nowrap;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .admin-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.3px;
-}
-
-/* Optional hover glow for elegance */
-.admin-info:hover {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
-  transition: all 0.3s ease;
-}
-.approve-btn {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  margin-right: 5px;
-  transition: background 0.3s ease;
-}
-
-.approve-btn:hover {
-  background-color: #45a049;
-}
-
-.reject-btn {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.reject-btn:hover {
-  background-color: #c0392b;
-}
-/* ===== Modern Action Buttons ===== */
-.action-btns {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn-approve,
-.btn-reject {
-  border: none;
-  outline: none;
   font-weight: 600;
-  font-size: 13px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.logout-btn {
+  background: #ef4444;
   color: #fff;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-approve {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-}
-.btn-approve:hover {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  transform: scale(1.05);
-}
-
-.btn-reject {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-.btn-reject:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: scale(1.05);
-}
-
-/* ===== Status Badges ===== */
-.status-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-  text-transform: capitalize;
-}
-
-.status-badge.pending {
-  background-color: #facc15;
-  color: #1f2937;
-}
-
-.status-badge.approved {
-  background-color: #22c55e;
-}
-
-.status-badge.rejected {
-  background-color: #ef4444;
-}
-
-/* ===== Table Hover Styling ===== */
-.earnings-table tr:hover {
-  background-color: #f9fafb;
-  transition: 0.25s ease-in-out;
-}
-.status-badge {
-  padding: 5px 10px;
+  border: none;
+  padding: 0.55rem 1.1rem;
   border-radius: 10px;
   font-weight: 600;
-  color: white;
-  text-transform: capitalize;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+  transition: all 0.3s ease;
 }
 
-.status-badge.paid {
-  background-color: #4caf50;
+.logout-btn:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
 }
 
-.status-badge.pending {
-  background-color: #ff9800;
+/* ==============================================
+   🧮 SUMMARY CARDS (Animated Gradient Glass)
+   ============================================== */
+.summary-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
-.approve-btn {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
+.summary-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 250, 250, 0.6));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+  padding: 1.5rem 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.summary-card::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -40%;
+  width: 180%;
+  height: 180%;
+  background: var(--gradient);
+  opacity: 0.1;
+  transform: rotate(25deg);
+  transition: 0.5s;
+}
+.summary-card:hover::before {
+  opacity: 0.25;
+  transform: rotate(0deg);
+}
+
+.summary-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 32px rgba(108, 99, 255, 0.25);
+}
+
+.summary-card h3 {
+  font-size: 1rem;
   font-weight: 600;
-  transition: background-color 0.2s ease;
+  color: var(--primary);
+  margin-bottom: 10px;
 }
 
+.summary-card p {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* ==============================================
+   📊 REVENUE CHART (Gradient Line + Soft Grid)
+   ============================================== */
+.chart-section {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.8rem 2rem;
+  margin-top: 2.5rem;
+  border: 1px solid #e0e7ff;
+}
+
+.chart-section h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+/* ==============================================
+   💰 TABLES (Modern Neumorphic)
+   ============================================== */
+.table-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #eef2ff;
+  transition: 0.3s;
+}
+.table-section:hover {
+  box-shadow: var(--soft-shadow);
+}
+
+.table-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.earnings-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.earnings-table th,
+.earnings-table td {
+  padding: 0.9rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.earnings-table th {
+  background: #f9fafc;
+  color: #475569;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.earnings-table tr:hover {
+  background: #f3f6ff;
+  transition: 0.2s;
+}
+
+.no-data {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 1rem;
+}
+
+/* ==============================================
+   🟢 BUTTONS (Glow Effect)
+   ============================================== */
+.approve-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: 0.3s;
+  box-shadow: 0 0 8px rgba(0, 201, 167, 0.4);
+}
 .approve-btn:hover {
-  background-color: #45a049;
+  background: #00b092;
+  transform: scale(1.05);
 }
 
 .reject-btn {
-  background-color: #f44336;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: 0.3s;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+.reject-btn:hover {
+  background: #dc2626;
+}
+
+.paid-btn {
+  background: #dcfce7;
+  color: var(--success);
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  padding: 0.4rem 1rem;
+}
+
+/* ==============================================
+   🏷 STATUS BADGES
+   ============================================== */
+.status-badge {
+  padding: 0.4rem 0.9rem;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.status-badge.paid {
+  background: #dcfce7;
+  color: var(--success);
+}
+.status-badge.pending {
+  background: #fff4e5;
+  color: var(--warning);
+}
+
+/* ==============================================
+   🌀 LOADING SCREEN
+   ============================================== */
+.admin-loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg);
+  font-size: 1.2rem;
+}
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #ddd;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+.approve-btn {
+  background-color: #28a745;
   color: white;
   border: none;
-  border-radius: 6px;
   padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
+  margin-right: 8px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.approve-btn:hover {
+  background-color: #218838;
+}
+
+.reject-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .reject-btn:hover {
-  background-color: #d32f2f;
-}
-.table-section h2 {
-  margin-bottom: 10px;
-  color: #0077ff;
+  background-color: #c82333;
 }
 
-.status-badge.pending {
-  color: orange;
-  font-weight: 600;
-}
-.table-section h2 {
-  color: #0077ff;
-  margin-bottom: 10px;
-}
 
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+  
 }
-
-.status-badge.approved {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-badge.rejected {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-}
-

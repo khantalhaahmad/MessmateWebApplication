@@ -1,10 +1,9 @@
-// routes/auth.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { body, validationResult } from "express-validator";
 import User from "../models/User.js";
-import { verifyToken } from "../middleware/auth.js";
+import verifyToken from "../middleware/authMiddleware.js"; // ✅ FIXED IMPORT ✅
 
 const router = express.Router();
 
@@ -34,21 +33,13 @@ router.post(
     try {
       let { name, email, password, role } = req.body;
 
-      // ============================================================
-      // 🧩 Normalize and validate role safely
-      // ============================================================
-      role = (role || "student").toString().trim().toLowerCase();
-
-      // Auto-correct common typo (like "owne")
+      // Normalize role
+      role = (role || "student").toLowerCase().trim();
       if (role.startsWith("owne")) role = "owner";
-
-      // Validate only allowed roles
       const validRoles = ["student", "owner", "admin"];
       if (!validRoles.includes(role)) role = "student";
 
-      // ============================================================
-      // 🧠 Check if user already exists
-      // ============================================================
+      // Check duplicate
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res
@@ -56,14 +47,9 @@ router.post(
           .json({ success: false, message: "User already exists" });
       }
 
-      // ============================================================
-      // 🔐 Hash Password
-      // ============================================================
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // ============================================================
-      // 🧱 Create User
-      // ============================================================
       const newUser = await User.create({
         name,
         email,
@@ -71,18 +57,13 @@ router.post(
         role,
       });
 
-      // ============================================================
-      // 🔑 Generate JWT
-      // ============================================================
+      // Generate token
       const token = jwt.sign(
-        { id: newUser._id, role: newUser.role },
+        { id: newUser._id, role: newUser.role, name: newUser.name },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
 
-      // ============================================================
-      // ✅ Response
-      // ============================================================
       res.status(201).json({
         success: true,
         message: "🎉 Registered successfully",
@@ -124,21 +105,19 @@ router.post(
         $or: [{ email: identifier }, { name: identifier }],
       });
 
-      if (!user) {
+      if (!user)
         return res
           .status(404)
           .json({ success: false, message: "User not found" });
-      }
 
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
+      if (!isMatch)
         return res
           .status(401)
           .json({ success: false, message: "Invalid password" });
-      }
 
       const token = jwt.sign(
-        { id: user._id, role: user.role },
+        { id: user._id, role: user.role, name: user.name },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
@@ -164,7 +143,7 @@ router.post(
 );
 
 /* ============================================================
-   🧠 VERIFY TOKEN
+   🧠 VERIFY TOKEN — Protected Route
    ============================================================ */
 router.get("/verify", verifyToken, async (req, res) => {
   try {

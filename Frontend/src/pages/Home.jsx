@@ -23,7 +23,11 @@ const Home = () => {
     const fetchMesses = async () => {
       try {
         const res = await api.get("/messes");
-        const messes = Array.isArray(res.data) ? res.data : [];
+const messes =
+  Array.isArray(res.data) ? res.data :
+  Array.isArray(res.data?.data) ? res.data.data :
+  Array.isArray(res.data?.messes) ? res.data.messes : [];
+
         setMessData(messes);
         setFilteredData(messes);
       } catch (err) {

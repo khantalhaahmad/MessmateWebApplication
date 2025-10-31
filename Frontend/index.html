@@ -2,16 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- ✅ Corrected path to load from /public/assets -->
+
+    <!-- ✅ Favicon -->
     <link rel="icon" type="image/png" href="/assets/messmate.png" />
+
+    <!-- ✅ Prefetch routes -->
     <link rel="prefetch" href="/admin/dashboard" as="document" />
     <link rel="prefetch" href="/dashboard" as="document" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MessMate</title>
+
+    <!-- ✅ Razorpay Payment Script (Important!) -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- ✅ Load React App -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

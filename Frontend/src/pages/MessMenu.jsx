@@ -1,48 +1,31 @@
-// src/pages/MessMenu.jsx
 import React, { useEffect, useState, useCallback, useContext } from "react";
 import { useParams } from "react-router-dom";
 import "../styles/MessMenu.css";
 import { CartContext } from "../Context/CartContext";
 import FoodPopup from "../components/FoodPopup";
 import ViewCartButton from "../components/ViewCartButton";
-import { RotateCcw } from "lucide-react";
-import api from "../services/api"; // ✅ use axios instance
+import api from "../services/api";
+import { Star, Clock, MapPin, Tag } from "lucide-react";
 
 const MessMenu = () => {
   const { mess_id } = useParams();
   const [mess, setMess] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
   const [filterType, setFilterType] = useState("All");
   const [selectedItem, setSelectedItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useContext(CartContext);
 
-  /**
-   * ✅ Fetch Mess Details + Menu
-   */
   const fetchMessMenu = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/messes/${mess_id}`); // ✅ dynamic baseURL
-      const fetchedMess = response.data;
-
-      if (!fetchedMess || !fetchedMess.menu) {
-        console.warn("⚠️ No mess or menu data found for:", mess_id);
-        setMess(null);
-        setMenuItems([]);
-        setFilteredItems([]);
-        return;
-      }
-
-      setMess(fetchedMess);
-      setMenuItems(fetchedMess.menu.items || []);
-      setFilteredItems(fetchedMess.menu.items || []);
-    } catch (error) {
-      console.error("❌ Error fetching mess menu:", error.response?.data || error.message);
-      setMess(null);
-      setMenuItems([]);
-      setFilteredItems([]);
+      const res = await api.get(`/messes/${mess_id}`);
+      const fetched = res.data?.mess || res.data || {};
+      const items = fetched.menu?.items || [];
+      setMess(fetched);
+      setMenuItems(items);
+    } catch (err) {
+      console.error("❌ Error fetching mess data:", err);
     } finally {
       setLoading(false);
     }
@@ -52,123 +35,93 @@ const MessMenu = () => {
     fetchMessMenu();
   }, [fetchMessMenu]);
 
-  /**
-   * ✅ Filter logic (Veg / Non-veg / Highly Reordered / All)
-   */
-  const handleFilter = (type) => {
-    setFilterType(type);
-    if (type === "Veg") {
-      setFilteredItems(menuItems.filter((item) => item.type?.toLowerCase() === "veg"));
-    } else if (type === "Non-veg") {
-      setFilteredItems(menuItems.filter((item) => item.type?.toLowerCase() === "non-veg"));
-    } else if (type === "Highly reordered") {
-      setFilteredItems(menuItems.filter((item) => item.isHighlyReordered));
-    } else {
-      setFilteredItems(menuItems);
-    }
-  };
-
-  /**
-   * ✅ Handle Image Paths
-   */
-  const getImagePath = (imagePath) => {
-    if (!imagePath) return "/assets/default-food.png";
-    if (imagePath.startsWith("/assets/")) return imagePath;
-    if (imagePath.startsWith("assets/")) return `/${imagePath}`;
-    return `/assets/${imagePath}`;
-  };
-
-  /**
-   * ✅ Add to cart popup logic
-   */
   const handleAddClick = (item) => {
-    setSelectedItem({
-      ...item,
-      mess_id: mess?.mess_id,
-      image: getImagePath(item.image),
-    });
+    console.log("🟢 Opening popup for:", item);
+    setSelectedItem(item);
   };
 
-  const handleConfirmAdd = (foodItem, quantity) => {
+  const handleConfirmAdd = (food, qty) => {
+    if (!mess || !mess._id || !mess.name) {
+      alert("⚠️ Please wait, mess details are still loading...");
+      return;
+    }
+
+    const validMessId = mess._id.toString();
+    const validMessName = mess.name;
+
     addToCart({
-      ...foodItem,
-      mess_id: mess?.mess_id,
-      quantity,
+      ...food,
+      quantity: qty || 1,
+      mess_id: validMessId,
+      mess_name: validMessName,
+      mess,
     });
+
+    console.log("✅ Added to cart:", {
+      mess_id: validMessId,
+      mess_name: validMessName,
+      item: food.name,
+      qty,
+    });
+
     setSelectedItem(null);
   };
 
-  /**
-   * ✅ Render Logic
-   */
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <p>🍽️ Loading mess menu...</p>
-      </div>
-    );
-  }
+  const filtered =
+    filterType === "All"
+      ? menuItems
+      : menuItems.filter((i) => (filterType === "Veg" ? i.isVeg : !i.isVeg));
 
-  if (!mess) {
-    return (
-      <div className="error-container">
-        <p>❌ Unable to load mess menu. Please try again later.</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="menu-loading">Loading menu...</div>;
 
   return (
-    <div className="mess-menu-container">
-      {/* 🏠 Mess Header */}
-      <div className="mess-header">
-        <div className="mess-header-left">
-          <h2>{mess.name}</h2>
-          <p className="mess-subinfo">
-            📍 {mess.location || "On Main NH"} • ⏱️ {mess.delivery_time || "25–30 mins"} • ⭐{" "}
-            {mess.rating || "4.3"}
-          </p>
+    <div className="menu-page">
+      <div className="mess-info-card glass-card">
+        <h1>{mess?.name || "Loading Mess..."}</h1>
+        <p className="mess-location">
+          <MapPin size={16} /> {mess?.location || "Location not available"}
+        </p>
+        <div className="mess-meta">
+          <span>
+            <Clock size={16} /> {mess?.delivery_time || "25–30 mins"}
+          </span>
+          <span>
+            <Star size={16} /> {mess?.rating || "4.3"}
+          </span>
         </div>
-        {mess.offer && <p className="offer-text">{mess.offer}</p>}
+        {mess?.offer && (
+          <div className="mess-offer">
+            <Tag size={16} /> {mess.offer}
+          </div>
+        )}
       </div>
 
-      {/* 🔘 Filter Buttons */}
-      <div className="filter-buttons">
-        {["All", "Veg", "Non-veg", "Highly reordered"].map((type) => (
+      <div className="filter-bar">
+        {["All", "Veg", "Non-veg"].map((type) => (
           <button
             key={type}
-            className={`filter-button ${filterType === type ? "active" : ""}`}
-            onClick={() => handleFilter(type)}
+            onClick={() => setFilterType(type)}
+            className={`filter-btn ${filterType === type ? "active" : ""}`}
           >
-            {type === "Highly reordered" ? <RotateCcw size={14} /> : null} {type}
+            {type}
           </button>
         ))}
       </div>
 
-      <h3 className="section-title">Recommended for you</h3>
-
-      {/* 🍛 Menu List */}
-      <div className="menu-list">
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item, index) => (
-            <div key={item._id || index} className="menu-row">
-              <div className="menu-info">
-                <span
-                  className={item.type?.toLowerCase() === "veg" ? "dot veg" : "dot nonveg"}
-                ></span>
-                <div className="menu-text">
-                  <h4>{item.name}</h4>
-                  <p className="price">₹{item.price}</p>
-                  {item.description && <p className="desc">{item.description}</p>}
-                </div>
-              </div>
-
-              <div className="menu-img-container">
-                <img
-                  src={getImagePath(item.image)}
-                  alt={item.name}
-                  onError={(e) => (e.target.src = "/assets/default-food.png")}
-                  className="menu-img"
-                />
+      <div className="menu-container">
+        {filtered.length > 0 ? (
+          filtered.map((item, idx) => (
+            <div key={idx} className="menu-card shadow-md hover-scale">
+              <img
+                src={`/assets/${item.image || "default-food.png"}`}
+                alt={item.name}
+                className="menu-img"
+                onError={(e) => (e.target.src = "/assets/default-food.png")}
+              />
+              <div className="menu-details">
+                <h3>{item.name}</h3>
+                <p className="menu-desc">{item.description}</p>
+                <p className="menu-price">₹{item.price}</p>
                 <button className="add-btn" onClick={() => handleAddClick(item)}>
                   ADD +
                 </button>
@@ -176,14 +129,14 @@ const MessMenu = () => {
             </div>
           ))
         ) : (
-          <p className="no-items">No items available in this category.</p>
+          <p className="no-items">🍽️ No menu items available yet.</p>
         )}
       </div>
 
-      {/* 🛒 Add Item Popup */}
       {selectedItem && (
         <FoodPopup
           item={selectedItem}
+          mess={mess} // ✅ pass mess
           onClose={() => setSelectedItem(null)}
           onAdd={handleConfirmAdd}
         />

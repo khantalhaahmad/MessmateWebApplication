@@ -1,12 +1,14 @@
+// src/pages/AdminDeliveryAgents.jsx
 import React, { useEffect, useState, useContext } from "react";
 import api from "../services/api";
-import "../styles/AdminDashboard.css"; // reuse same styling
+import "../styles/AdminDashboard.css";
 import { AuthContext } from "../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 const AdminDeliveryAgents = () => {
   const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -17,31 +19,47 @@ const AdminDeliveryAgents = () => {
     const fetchAgents = async () => {
       try {
         const res = await api.get("/admin/delivery-agents", config); // ✅ fixed route
-        setAgents(res.data);
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        setAgents(data);
       } catch (err) {
         console.error("❌ Error fetching delivery agents:", err);
         Swal.fire("Error", "Failed to fetch delivery agents.", "error");
+      } finally {
+        setLoading(false);
       }
     };
     fetchAgents();
   }, []);
 
+  if (loading)
+    return (
+      <div className="admin-loading-screen">
+        <div className="spinner"></div>
+        <p>Loading Delivery Agents...</p>
+      </div>
+    );
+
   return (
     <div className="admin-dashboard">
-      {/* ===== HEADER ===== */}
+      {/* HEADER */}
       <header className="admin-header">
         <div className="header-left">
           <h1>🚴 Delivery Agents</h1>
         </div>
         <div className="header-right">
-          <button className="home-btn" onClick={() => navigate("/admin/dashboard")}>
+          <button
+            className="home-btn"
+            onClick={() => navigate("/admin/dashboard")}
+          >
             ⬅️ Back to Dashboard
           </button>
           <span className="admin-name">{user?.name || "Admin"}</span>
         </div>
       </header>
 
-      {/* ===== TABLE ===== */}
+      {/* TABLE */}
       <section className="table-section">
         <h2>📋 List of All Delivery Agents</h2>
         <table className="earnings-table">

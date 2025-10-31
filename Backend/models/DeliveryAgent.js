@@ -1,16 +1,19 @@
 // models/DeliveryAgent.js
 import mongoose from "mongoose";
 
-const deliveryAgentSchema = new mongoose.Schema({
-  name: String,
-  phone: String,
-  email: String,
-  city: String,
-  vehicleType: String,
-  vehicleNumber: String,
-  password: String, // generated manually by admin
-  status: { type: String, default: "available" },
-  createdAt: { type: Date, default: Date.now },
-});
+const deliveryAgentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, required: true },
+    city: { type: String },
+    vehicleType: { type: String },
+    vehicleNumber: { type: String },
+    password: { type: String, required: true },
+    status: { type: String, default: "active" },
+    approvedAt: { type: Date },
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model("DeliveryAgent", deliveryAgentSchema);

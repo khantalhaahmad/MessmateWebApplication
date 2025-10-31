@@ -889,6 +889,28 @@
     max-width: 100%;
     border-radius: 20px 20px 0 0;
   }
+  .mess-details { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.back-btn { display:inline-block; margin-bottom:10px; text-decoration:none; color:#4f46e5; }
+.back-btn:hover { text-decoration: underline; }
+
+.md-header { display:flex; gap:14px; align-items:flex-start; margin-bottom:12px; }
+.md-banner { width:260px; height:160px; object-fit:cover; border-radius:12px; border:1px solid #eee; }
+.md-title h1 { margin:0 0 6px; }
+.mess-meta { margin:0; color:#475569; }
+.mess-offer { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; padding:6px 10px; border-radius:8px; width:fit-content; margin-top:6px; }
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap:12px;
+  margin-top:8px;
+}
+.menu-card { border:1px solid #eee; border-radius:12px; padding:10px; background:#fff; }
+.menu-img { width:100%; height:130px; object-fit:cover; border-radius:10px; border:1px solid #eee; }
+
+.md-loading, .md-error { padding:16px; color:#475569; }
+.md-error { color:#b91c1c; }
+
 }
 
 

@@ -409,6 +409,56 @@
 .logout-btn:hover {
   background: #e64a19;
 }
+.chart-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+  margin-bottom: 50px;
+}
 
+/* container for chart to control height */
+.chart-container {
+  height: 250px; /* 👈 reduced chart height */
+  margin-top: 10px;
+}
+
+.chart-container canvas {
+  max-height: 250px !important;
+}
+.chart-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+  margin-bottom: 50px;
+}
+
+.chart-header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.chart-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.chart-subtitle {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.chart-container {
+  height: 260px; /* Balanced chart size */
+  margin-top: 5px;
+}
+
+.chart-container canvas {
+  max-height: 260px !important;
+}
 
 

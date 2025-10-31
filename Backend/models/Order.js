@@ -18,7 +18,7 @@ const orderSchema = new mongoose.Schema(
         quantity: { type: Number, required: true },
         image: { type: String, default: "default.png" },
 
-        // ✅ Newly added fields for smarter recommendations
+        // ✅ Extra metadata for items
         type: {
           type: String,
           enum: ["veg", "non-veg"],
@@ -32,7 +32,19 @@ const orderSchema = new mongoose.Schema(
     ],
 
     total_price: { type: Number, required: true },
-    status: { type: String, default: "confirmed" },
+
+    // ✅ Added field for COD / Online differentiation
+    paymentMethod: {
+      type: String,
+      enum: ["Online", "COD"],
+      default: "Online",
+    },
+
+    // ✅ Updated order status
+    status: {
+      type: String,
+      default: "confirmed",
+    },
   },
   { timestamps: true }
 );

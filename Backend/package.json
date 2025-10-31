@@ -23,7 +23,8 @@
     "mongoose-sequence": "^6.0.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.0",
-    "multer-storage-cloudinary": "^4.0.0"
+    "multer-storage-cloudinary": "^4.0.0",
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

@@ -1,15 +1,12 @@
-// src/components/FoodPopup.jsx
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
-import { useCart } from "../Context/CartContext";
 import "../styles/FoodPopup.css";
 
 const FoodPopup = ({ item, mess, onClose, onAdd }) => {
-  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [show, setShow] = useState(false); // for fade animation
 
-  // ✅ Stable mount animation (no blinking)
+  // ✅ Mount animation
   useEffect(() => {
     const timer = requestAnimationFrame(() => setShow(true));
     return () => cancelAnimationFrame(timer);
@@ -17,7 +14,7 @@ const FoodPopup = ({ item, mess, onClose, onAdd }) => {
 
   if (!item) return null;
 
-  // ✅ Unified image resolver
+  // ✅ Image resolver
   const getImagePath = (imagePath, itemName) => {
     if (imagePath) {
       if (imagePath.startsWith("http")) return imagePath;
@@ -26,36 +23,32 @@ const FoodPopup = ({ item, mess, onClose, onAdd }) => {
       if (imagePath.startsWith("./assets/")) return imagePath.replace("./", "/");
       return `/assets/${imagePath}`;
     }
-    // fallback from item name
     const formatted = itemName.toLowerCase().replace(/\s+/g, "").replace(/[()]/g, "");
     return `/assets/${formatted}.png`;
   };
 
   const imageSrc = getImagePath(item.image, item.name);
 
-  // ✅ Add to cart logic
+  // ✅ Handle confirm add — use parent-provided handler
   const handleAdd = () => {
-    const validMessId =
-      mess?.mess_id || item?.mess_id || "unknown";
+    console.log("🟢 Confirm Add clicked:", { item, mess, quantity });
 
-    const itemToAdd = {
-      ...item,
-      mess_id: validMessId,
-      quantity,
-    };
+    if (typeof onAdd === "function") {
+      onAdd(item, quantity);
+    } else {
+      console.error("❌ onAdd is not a function");
+    }
 
-    addToCart(itemToAdd);
     setShow(false);
     setTimeout(onClose, 200);
   };
 
-  // ✅ Smooth close
   const handleClose = () => {
     setShow(false);
     setTimeout(onClose, 200);
   };
 
-  // ✅ Render portal (only once)
+  // ✅ Render in portal
   return ReactDOM.createPortal(
     <div
       className={`popup-overlay ${show ? "show" : ""}`}

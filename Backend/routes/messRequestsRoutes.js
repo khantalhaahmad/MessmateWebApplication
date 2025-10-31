@@ -1,18 +1,21 @@
-// ✅ routes/messRequestRoutes.js — Market-Launch Final Version (Fixed)
+// Backend/routes/messRequestRoutes.js
 import express from "express";
 import { body, validationResult } from "express-validator";
 import MessRequest from "../models/MessRequest.js";
 import Mess from "../models/Mess.js";
-import { verifyToken } from "../middleware/auth.js";
-import upload from "../middleware/uploadMiddleware.js";
+import verifyToken, { verifyToken as verifyTokenNamed } from "../middleware/auth.js";
+import { messRequestUploads, handleMulterErrors } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
+// pick whichever export style you prefer
+const guard = verifyTokenNamed || verifyToken;
+
 /* ============================================================
-   🧾 DEBUG LOGGER
+   🧾 DEBUG LOGGER (optional)
    ============================================================ */
-router.use((req, res, next) => {
-  console.log(`➡️ [MessRequestRoute] ${req.method} ${req.originalUrl}`);
+router.use((req, _res, next) => {
+  console.log(`➡️ [MessRequest] ${req.method} ${req.originalUrl}`);
   next();
 });
 
@@ -21,86 +24,72 @@ router.use((req, res, next) => {
    ============================================================ */
 router.post(
   "/",
-  verifyToken,
-  // ✅ Multer first (so req.body is populated)
-  upload.fields([
-    { name: "pancard", maxCount: 1 },
-    { name: "fssai", maxCount: 1 },
-    { name: "menuPhoto", maxCount: 1 },
-    { name: "bankDetails", maxCount: 1 },
-  ]),
-  // ✅ Validators after Multer
+  guard,
+  handleMulterErrors(messRequestUploads),
   [
-    body("name").notEmpty().withMessage("Mess name is required"),
-    body("location").notEmpty().withMessage("Location is required"),
+    body("name").trim().notEmpty().withMessage("Mess name is required"),
+    body("location").trim().notEmpty().withMessage("Location is required"),
     body("email").isEmail().withMessage("Valid email is required"),
-    body("mobile")
-      .isLength({ min: 10 })
-      .withMessage("Enter a valid 10-digit mobile number"),
+    body("mobile").isLength({ min: 10, max: 10 }).withMessage("Enter a valid 10-digit mobile number"),
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        console.log("❌ Validation errors:", errors.array());
-        return res
-          .status(400)
-          .json({ success: false, errors: errors.array(), message: "Validation failed" });
+        return res.status(400).json({ success: false, errors: errors.array(), message: "Validation failed" });
       }
-
-      console.log("📥 Incoming body:", req.body);
 
       const { name, location, mobile, email, price_range, offer } = req.body;
 
-      /* ============================================================
-         🍱 Parse Menu
-         ============================================================ */
+      // Parse menu (array or {items:[]})
       let menuItems = [];
       try {
         const parsed = JSON.parse(req.body.menu || "[]");
         if (Array.isArray(parsed)) menuItems = parsed;
-        else if (parsed.items && Array.isArray(parsed.items))
-          menuItems = parsed.items;
-      } catch (err) {
-        console.error("💥 Menu JSON Parse Error:", err.message);
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid menu format" });
+        else if (parsed?.items && Array.isArray(parsed.items)) menuItems = parsed.items;
+      } catch {
+        return res.status(400).json({ success: false, message: "Invalid menu format" });
       }
 
-      /* ============================================================
-         💾 Create New Mess Request
-         ============================================================ */
-      const messRequest = await MessRequest.create({
+      // Pull uploaded files
+      const bannerFile = req.files?.messBanner?.[0];
+      const dishFiles = req.files?.dishImages || [];
+      const pancard = req.files?.pancard?.[0]?.path || "";
+      const fssai = req.files?.fssai?.[0]?.path || "";
+      const menuPhoto = req.files?.menuPhoto?.[0]?.path || "";
+      const bankDetails = req.files?.bankDetails?.[0]?.path || "";
+
+      // Pair dish images with menu items by index
+      const items = menuItems.map((i, idx) => ({
+        name: i.name,
+        price: Number(i.price) || 0,
+        description: i.description || "",
+        isVeg: i.isVeg ?? true,
+        imageUrl: dishFiles[idx]?.path || "",          // Cloudinary secure_url
+        imagePublicId: dishFiles[idx]?.filename || "", // Cloudinary public_id
+      }));
+
+      const doc = await MessRequest.create({
         name,
         location,
         mobile,
         email,
-        price_range,
-        offer,
-        pancard: req.files?.pancard?.[0]?.path || "",
-        fssai: req.files?.fssai?.[0]?.path || "",
-        menuPhoto: req.files?.menuPhoto?.[0]?.path || "",
-        bankDetails: req.files?.bankDetails?.[0]?.path || "",
-        menu: { items: menuItems.map((i) => ({
-          name: i.name,
-          price: Number(i.price) || 0,
-          description: i.description || "Delicious homemade food",
-          isVeg: i.isVeg ?? true,
-        })) },
+        price_range: price_range || "",
+        offer: offer || "",
+        messBanner: bannerFile?.path || "",
+        menu: { items },
+        documents: { pancard, fssai, menuPhoto, bankDetails },
         owner_id: req.user.id,
         status: "pending",
       });
 
-      console.log("✅ Mess request saved:", messRequest._id);
-
       return res.status(201).json({
         success: true,
         message: "✅ Mess request submitted successfully.",
-        messRequest,
+        messRequest: doc,
       });
     } catch (error) {
-      console.error("💥 Error submitting mess request:", error);
+      console.error("💥 Submit mess request error:", error);
       res.status(500).json({
         success: false,
         message: "Server error while submitting mess request",
@@ -111,65 +100,121 @@ router.post(
 );
 
 /* ============================================================
-   ✅ APPROVE REQUEST (Admin)
+   ✅ APPROVE REQUEST (Admin) — with secure password verification
    ============================================================ */
-router.put("/:id/approve", verifyToken, async (req, res) => {
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+
+router.put("/:id/approve", guard, async (req, res) => {
   try {
-    if (req.user.role !== "admin")
-      return res.status(403).json({ message: "Admins only" });
+    // 🧠 Step 1: Ensure only admin can approve
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Admins only" });
+    }
 
-    const messRequest = await MessRequest.findById(req.params.id);
-    if (!messRequest)
-      return res.status(404).json({ message: "Request not found" });
+    // 🧠 Step 2: Validate admin password input
+    const { adminPassword, generatedPassword } = req.body;
 
-    const data = messRequest.toObject();
-    const newMess = await Mess.create({
-      name: data.name,
-      location: data.location,
-      price_range: data.price_range,
-      offer: data.offer,
-      owner_id: data.owner_id,
-      image: data.menuPhoto || data.pancard || "",
-      menu: data.menu,
+    if (!adminPassword) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Admin password is required" });
+    }
+
+    // 🧠 Step 3: Fetch admin user from DB
+    const adminUser = await User.findById(req.user.id);
+    if (!adminUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Admin account not found" });
+    }
+
+    // 🧠 Step 4: Verify admin password using bcrypt
+    const isMatch = await bcrypt.compare(adminPassword, adminUser.password);
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Wrong admin password" });
+    }
+
+    // 🧠 Step 5: Find mess request document
+    const reqDoc = await MessRequest.findById(req.params.id);
+    if (!reqDoc) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Mess request not found" });
+    }
+
+    // 🧠 Step 6: Prepare menu items for the new Mess
+    const items = (reqDoc.menu?.items || []).map((i) => ({
+      name: i.name,
+      price: i.price,
+      description: i.description,
+      isVeg: i.isVeg,
+      image: i.imageUrl || "",
+    }));
+
+    // 🧠 Step 7: Create new Mess entry
+    const mess = await Mess.create({
+      name: reqDoc.name,
+      location: reqDoc.location,
+      price_range: reqDoc.price_range,
+      offer: reqDoc.offer,
+      owner_id: reqDoc.owner_id,
       rating: 0,
       delivery_time: "30–40 mins",
+      banner: reqDoc.messBanner || reqDoc.documents?.menuPhoto || "",
+      menu: { items },
+      documents: reqDoc.documents || {},
     });
 
-    await messRequest.deleteOne();
-    console.log("✅ Approved Mess:", newMess._id);
-    res.json({
+    // 🧠 Step 8: Optional — Update owner password if admin provided one
+    if (generatedPassword) {
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      await User.findByIdAndUpdate(reqDoc.owner_id, {
+        password: hashedPassword,
+      });
+    }
+
+    // 🧠 Step 9: Delete the approved request
+    await reqDoc.deleteOne();
+
+    // 🧠 Step 10: Respond successfully
+    return res.json({
       success: true,
-      message: "Mess approved successfully",
-      mess: newMess,
+      message: generatedPassword
+        ? "Mess approved successfully with owner password updated ✅"
+        : "Mess approved successfully ✅",
+      mess,
     });
   } catch (error) {
     console.error("💥 Approve Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to approve mess" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error while approving mess",
+      error: error.message,
+    });
   }
 });
 
 /* ============================================================
    ❌ REJECT REQUEST (Admin)
    ============================================================ */
-router.put("/:id/reject", verifyToken, async (req, res) => {
+router.put("/:id/reject", guard, async (req, res) => {
   try {
-    if (req.user.role !== "admin")
-      return res.status(403).json({ message: "Admins only" });
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Admins only" });
+    }
+    const reqDoc = await MessRequest.findById(req.params.id);
+    if (!reqDoc) return res.status(404).json({ success: false, message: "Request not found" });
 
-    const messRequest = await MessRequest.findById(req.params.id);
-    if (!messRequest)
-      return res.status(404).json({ message: "Request not found" });
-
-    await messRequest.deleteOne();
-    console.log("❌ Mess request rejected:", req.params.id);
-    res.json({ success: true, message: "Mess request rejected" });
+    await reqDoc.deleteOne();
+    return res.json({ success: true, message: "Mess request rejected" });
   } catch (error) {
     console.error("💥 Reject Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to reject mess" });
+    res.status(500).json({ success: false, message: "Failed to reject mess" });
   }
 });
 

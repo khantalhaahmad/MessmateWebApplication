@@ -1,6 +1,6 @@
-// ✅ src/App.jsx — Optimized with Lazy Loading, Spinner & Clean Suspense
+// ✅ src/App.jsx — Clean, Optimized & FloatingButtons fixed for only /messes/:id
 import React, { Suspense, lazy } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, matchPath } from "react-router-dom";
 import { AuthProvider } from "./Context/AuthContext";
 import { CartProvider } from "./Context/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -35,7 +35,7 @@ const HelpSupport = lazy(() => import("./pages/HelpSupport"));
 const ReportFraud = lazy(() => import("./pages/ReportFraud"));
 const Blog = lazy(() => import("./pages/Blog"));
 
-// 🌀 Custom Fallback Loader
+// 🌀 Custom Loader
 const Loader = () => (
   <div className="loading-screen">
     <div className="spinner"></div>
@@ -46,16 +46,29 @@ const Loader = () => (
 function App() {
   const location = useLocation();
 
-  // 🦶 Hide footer on dashboards, login/signup/admin pages
-  const noFooterRoutes = ["/login", "/signup", "/dashboard", "/admin"];
-  const shouldShowFooter = !noFooterRoutes.some((r) =>
-    location.pathname.startsWith(r)
+  // 🚫 Routes where footer should be hidden
+  const noFooterRoutes = [
+    "/login",
+    "/signup",
+    "/dashboard",
+    "/admin",
+    "/checkout",
+    "/messes",
+  ];
+
+  const shouldShowFooter = !noFooterRoutes.some((path) =>
+    location.pathname.startsWith(path)
   );
+
+  // ✅ Floating Cart should appear ONLY on /messes/:mess_id routes
+  const isMessMenuPage = matchPath("/messes/:mess_id", location.pathname);
 
   return (
     <AuthProvider>
       <CartProvider>
-        <FloatingButtons />
+        {/* ✅ FloatingButtons visible ONLY on /messes/:mess_id */}
+        {isMessMenuPage && <FloatingButtons />}
+
         <main>
           <ErrorBoundary>
             <Suspense fallback={<Loader />}>
@@ -71,7 +84,7 @@ function App() {
                 <Route path="/partner-with-us" element={<PartnerLanding />} />
                 <Route path="/addmess" element={<AddMessForm />} />
 
-                {/* 👨‍🎓 Authenticated User / Owner Dashboard */}
+                {/* 👨‍🎓 User / Owner Dashboard */}
                 <Route
                   path="/dashboard"
                   element={
@@ -137,6 +150,8 @@ function App() {
             </Suspense>
           </ErrorBoundary>
         </main>
+
+        {/* ✅ Footer hidden on menu, checkout, admin, dashboard, login/signup */}
         {shouldShowFooter && <Footer />}
       </CartProvider>
     </AuthProvider>

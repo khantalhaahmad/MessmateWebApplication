@@ -1,45 +1,74 @@
 // src/services/api.js
 import axios from "axios";
 
-const ENV = import.meta.env.VITE_ENV || (
-  typeof window !== "undefined" && /localhost|127\.0\.0\.1/.test(window.location.hostname)
-    ? "development"
-    : "production"
-);
+/* ============================================================
+   ⚙️ BASE URL CONFIGURATION (Auto Environment Switch)
+   ============================================================ */
+const isLocal =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1");
 
-// ✅ Use the API URLs exactly from .env (Do NOT add extra /api here)
-const BASE_URL =
-  ENV === "production"
-    ? import.meta.env.VITE_API_URL_PROD     // Already contains /api
-    : import.meta.env.VITE_API_URL;         // Already contains /api (local)
+const baseURL = isLocal
+  ? import.meta.env.VITE_API_URL || "http://localhost:4000" // ✅ removed `/api` from here
+  : import.meta.env.VITE_API_URL_PROD ||
+    "https://messmate-backend.onrender.com";
 
-// ✅ Fallback for safety
-const finalBase = BASE_URL || "http://localhost:4000/api";
-
+/* ============================================================
+   🧩 AXIOS INSTANCE
+   ============================================================ */
 const api = axios.create({
-  baseURL: finalBase,
-  headers: { "Content-Type": "application/json" },
-  timeout: 15000,
+  baseURL: `${baseURL}/api`, // ✅ append `/api` only once
+  withCredentials: true,
+  timeout: 60000,
 });
 
-// ✅ Attach JWT token automatically
+/* ============================================================
+   🔐 AUTH TOKEN INTERCEPTOR
+   ============================================================ */
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const adminToken = localStorage.getItem("adminToken");
+  const userToken = localStorage.getItem("token");
+  const token = adminToken || userToken;
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
-// ✅ Handle Token Expiry
+/* ============================================================
+   ⚠️ RESPONSE ERROR INTERCEPTOR
+   ============================================================ */
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      console.warn("⚠️ Unauthorized → Clearing session...");
       localStorage.clear();
-      window.location.href = "/login";
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(err);
   }
 );
 
-console.log(`🔥 API Connected: ${finalBase}`);
+/* ============================================================
+   🧠 DEV LOGGING
+   ============================================================ */
+if (import.meta.env.DEV) {
+  console.log("✅ API Base URL →", `${baseURL}/api`);
+}
+
+/* ============================================================
+   📦 UPLOAD CONFIG HELPER
+   ============================================================ */
+export const buildUploadConfig = (onUploadProgress, signal) => ({
+  headers: {},
+  onUploadProgress,
+  signal,
+});
+
 export default api;

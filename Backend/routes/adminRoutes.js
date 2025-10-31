@@ -1,7 +1,6 @@
-// Backend/routes/adminRoutes.js
 import express from "express";
-import authMiddleware from "../middleware/authMiddleware.js";
-import adminMiddleware from "../middleware/adminMiddleware.js";
+import authMiddleware from "../middleware/authMiddleware.js"; // ✅ FIXED
+import adminMiddleware from "../middleware/adminMiddleware.js"; // ✅ FIXED
 import Order from "../models/Order.js";
 import Mess from "../models/Mess.js";
 import User from "../models/User.js";
@@ -31,6 +30,7 @@ router.post("/delivery-request", async (req, res) => {
       date: new Date().toLocaleDateString("en-GB"),
       status: "pending",
     });
+
     await request.save();
     return res.status(201).json({ message: "Request submitted successfully" });
   } catch (err) {
@@ -39,22 +39,42 @@ router.post("/delivery-request", async (req, res) => {
 });
 
 /* ============================================================
-   2️⃣ Update Payout Status
+   2️⃣ Update Payout Status (✅ Fixed and Logged)
    ============================================================ */
 router.put("/payout-status", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { messName, payoutStatus } = req.body;
-    if (!messName) return res.status(400).json({ success: false, message: "messName missing" });
+    console.log("🟢 Received payout update request:", req.body); // ✅ Debug log to check frontend payload
 
-    const mess = await Mess.findOne({ name: messName });
-    if (!mess) return res.status(404).json({ success: false, message: "Mess not found" });
+    const { messId, payoutStatus } = req.body; // ✅ using messId instead of messName
 
-    mess.payoutStatus = payoutStatus;
+    // 🧠 Validate input
+    if (!messId)
+      return res
+        .status(400)
+        .json({ success: false, message: "❌ messId missing in request body" });
+
+    // ✅ Find mess by ID
+    const mess = await Mess.findById(messId);
+    if (!mess)
+      return res
+        .status(404)
+        .json({ success: false, message: `❌ Mess not found for ID: ${messId}` });
+
+    // ✅ Update and save
+    mess.payoutStatus = payoutStatus || "Paid";
     await mess.save();
 
-    res.json({ success: true, message: `Payout status updated to ${payoutStatus}` });
+    console.log(`✅ Payout status updated for Mess: ${mess.name} (${mess._id}) → ${mess.payoutStatus}`);
+
+    return res.json({
+      success: true,
+      message: `✅ Payout status updated to ${mess.payoutStatus}`,
+    });
   } catch (err) {
-    handleError(res, err, "Error updating payout status");
+    console.error("💥 Error updating payout status:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Error updating payout status", error: err.message });
   }
 });
 
@@ -69,9 +89,10 @@ router.get("/daily-summary", authMiddleware, adminMiddleware, async (req, res) =
     end.setDate(start.getDate() + 1);
 
     const todayOrders = await Order.find({
-      status: "confirmed",
-      createdAt: { $gte: start, $lt: end },
-    });
+  status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+  createdAt: { $gte: start, $lt: end },
+});
+
 
     const totalOrders = todayOrders.length;
     const totalGrossRevenue = todayOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
@@ -114,12 +135,13 @@ router.get("/revenue-trends", authMiddleware, adminMiddleware, async (req, res) 
     const data = await Order.aggregate([
       {
         $match: {
-          status: "confirmed",
-          createdAt: {
-            $gte: startDate,
-            $lte: new Date(), // ✅ Include orders up to right now
-          },
-        },
+  status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+  createdAt: {
+    $gte: startDate,
+    $lte: new Date(),
+  },
+},
+
       },
       {
         $group: {
@@ -157,51 +179,95 @@ router.get("/revenue-trends", authMiddleware, adminMiddleware, async (req, res) 
   }
 });
 
-
 /* ============================================================
-   5️⃣ Owner Payouts (Monthly) — Uses COMMISSION_RATE
+   5️⃣ Owner Payouts (Monthly) — Unified, Deduplicated, Dynamic Commission
    ============================================================ */
 router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const COMMISSION_RATE = Number(process.env.COMMISSION_RATE || 10);
 
+    // 🧠 Step 1: Aggregate orders (include all relevant statuses)
     const monthlyOrders = await Order.aggregate([
-      { $match: { status: "confirmed", createdAt: { $gte: start } } },
+      {
+        $match: {
+          status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+          createdAt: { $gte: start },
+        },
+      },
       {
         $group: {
-          _id: "$mess_id",
-          messName: { $first: "$mess_name" },
+          _id: {
+            mess_id: "$mess_id",
+            mess_name: "$mess_name",
+          },
           totalRevenue: { $sum: "$total_price" },
           totalOrders: { $sum: 1 },
         },
       },
     ]);
 
+    // 🧠 Step 2: Normalize + merge duplicates by mess name or ID
+    const mergedMap = new Map();
+
+    monthlyOrders.forEach((entry) => {
+      const rawMessId = entry._id.mess_id?.toString()?.trim();
+      const rawMessName = entry._id.mess_name?.toLowerCase()?.trim();
+
+      // 🧩 Create a unique key using either mess_id or mess_name
+      const key =
+        rawMessId && rawMessId !== "N/A" && rawMessId !== "null"
+          ? rawMessId
+          : rawMessName || "unknown";
+
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, { ...entry });
+      } else {
+        const existing = mergedMap.get(key);
+        existing.totalRevenue += entry.totalRevenue;
+        existing.totalOrders += entry.totalOrders;
+        mergedMap.set(key, existing);
+      }
+    });
+
+    const mergedOrders = Array.from(mergedMap.values());
+
+    // 🧠 Step 3: Fetch Mess & Owner info, compute payouts
     const payouts = await Promise.all(
-      monthlyOrders.map(async (entry) => {
-        const entryId = entry._id;
+      mergedOrders.map(async (entry) => {
+        const entryId = entry._id.mess_id;
+        const entryName = entry._id.mess_name;
         let mess = null;
 
-        const isObjectId = typeof entryId === "string" && /^[0-9a-fA-F]{24}$/.test(entryId);
-        if (isObjectId) mess = await Mess.findById(entryId).populate("owner_id", "name email");
-        if (!mess) {
-          const num = Number(entryId);
-          if (!Number.isNaN(num))
-            mess = await Mess.findOne({ mess_id: num }).populate("owner_id", "name email");
+        // ✅ Try matching by ObjectId
+        if (entryId && /^[0-9a-fA-F]{24}$/.test(entryId)) {
+          mess = await Mess.findById(entryId).populate("owner_id", "name email");
         }
 
+        // ✅ Try matching by numeric mess_id
+        if (!mess && !isNaN(Number(entryId))) {
+          mess = await Mess.findOne({ mess_id: Number(entryId) }).populate("owner_id", "name email");
+        }
+
+        // ✅ Try matching by name
+        if (!mess && entryName && entryName !== "Unknown Mess") {
+          mess = await Mess.findOne({ name: entryName }).populate("owner_id", "name email");
+        }
+
+        // ✅ Compute payout values
         const owner = mess?.owner_id || {};
         const commission = Math.round((entry.totalRevenue * COMMISSION_RATE) / 100);
         const payable = Math.round(entry.totalRevenue - commission);
 
         return {
-          messId: entry._id,
-          messName: entry.messName || mess?.name || "Unnamed Mess",
+          messId: mess?._id?.toString() || entryId || "N/A",
+          messName: mess?.name || entryName || "Unknown Mess",
           ownerName: owner.name || "Unknown",
           ownerEmail: owner.email || "N/A",
-          totalRevenue: entry.totalRevenue,
           totalOrders: entry.totalOrders,
+          totalRevenue: entry.totalRevenue,
+          commissionRate: `${COMMISSION_RATE}%`,
           commission,
           payable,
           payoutStatus: mess?.payoutStatus || "Pending",
@@ -209,11 +275,30 @@ router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) =
       })
     );
 
-    res.json(payouts);
+    // ✅ Step 4: Merge duplicates that might differ only by case or type
+    const finalMerged = [];
+    const seen = new Set();
+
+    for (const p of payouts) {
+      const key = p.messName.toLowerCase().trim();
+      if (seen.has(key)) {
+        const existing = finalMerged.find((x) => x.messName.toLowerCase().trim() === key);
+        existing.totalOrders += p.totalOrders;
+        existing.totalRevenue += p.totalRevenue;
+        existing.commission += p.commission;
+        existing.payable += p.payable;
+      } else {
+        seen.add(key);
+        finalMerged.push(p);
+      }
+    }
+
+    res.json(finalMerged);
   } catch (error) {
     handleError(res, error, "Error generating owner payouts");
   }
 });
+
 
 /* ============================================================
    6️⃣ Mess Requests (Approve / Reject)
@@ -310,11 +395,13 @@ router.put("/delivery-request/:id/reject", authMiddleware, adminMiddleware, asyn
 });
 
 /* ============================================================
-   8️⃣ Lists, Top Messes, Reviews
+   8️⃣ Lists, Top Messes, Reviews (✅ FIXED)
    ============================================================ */
 router.get("/mess-list", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const messes = await Mess.find().sort({ createdAt: -1 }).populate("owner_id", "name email");
+    const messes = await Mess.find()
+      .sort({ createdAt: -1 })
+      .populate("owner_id", "name email");
     res.json(messes);
   } catch (error) {
     handleError(res, error, "Error fetching mess list");
@@ -328,7 +415,9 @@ router.get("/owners", authMiddleware, adminMiddleware, async (req, res) => {
     const data = owners.map((o) => ({
       ownerName: o.name,
       email: o.email,
-      messes: messes.filter((m) => m.owner_id?.toString() === o._id.toString()).map((m) => m.name),
+      messes: messes
+        .filter((m) => m.owner_id?.toString() === o._id.toString())
+        .map((m) => m.name),
     }));
     res.json(data);
   } catch (error) {
@@ -338,7 +427,9 @@ router.get("/owners", authMiddleware, adminMiddleware, async (req, res) => {
 
 router.get("/students", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const students = await User.find({ role: "student" }).select("name email createdAt");
+    const students = await User.find({ role: "student" }).select(
+      "name email createdAt"
+    );
     res.json(students);
   } catch (error) {
     handleError(res, error, "Error fetching students");
@@ -354,58 +445,82 @@ router.get("/delivery-agents", authMiddleware, adminMiddleware, async (req, res)
   }
 });
 
+/* ============================================================
+   🏆 Top Performing Messes — FIXED for Real Database Data
+   ============================================================ */
 router.get("/top-messes", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 5, 20);
     const sinceDays = Number(req.query.sinceDays) || 30;
+
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - sinceDays);
     sinceDate.setHours(0, 0, 0, 0);
 
+    // ✅ 1. Aggregate orders by both mess_id & mess_name
     const agg = await Order.aggregate([
-      { $match: { status: "confirmed", createdAt: { $gte: sinceDate } } },
+      {
+        $match: {
+          status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+          createdAt: { $gte: sinceDate },
+        },
+      },
       {
         $group: {
-          _id: "$mess_id",
+          _id: { messId: "$mess_id", messName: "$mess_name" },
           orderCount: { $sum: 1 },
           totalRevenue: { $sum: { $ifNull: ["$total_price", 0] } },
         },
       },
-      { $sort: { orderCount: -1, totalRevenue: -1 } },
+      { $sort: { totalRevenue: -1, orderCount: -1 } },
       { $limit: limit },
     ]);
 
-    const ids = agg.map((a) => a._id);
-    const numericIds = ids.filter((v) => !isNaN(Number(v)));
+    // ✅ 2. Collect all unique mess IDs to fetch actual Mess documents
+    const messIds = agg.map((a) => a._id.messId).filter(Boolean);
+    const objectIds = messIds.filter((id) => /^[0-9a-fA-F]{24}$/.test(String(id)));
+    const numericIds = messIds
+      .map((id) => Number(id))
+      .filter((id) => !isNaN(id) && id !== 0);
 
-    const messQuery = {
+    const messes = await Mess.find({
       $or: [
-        { _id: { $in: ids.filter((id) => /^[0-9a-fA-F]{24}$/.test(String(id))) } },
-        { mess_id: { $in: ids } },
+        { _id: { $in: objectIds } },
         { mess_id: { $in: numericIds } },
       ],
-    };
+    })
+      .select("name location mess_id")
+      .lean();
 
-    const messDocs = await Mess.find(messQuery).select("name location mess_id").lean();
+    // ✅ 3. Combine order aggregation + mess data
     const result = agg.map((a) => {
-      const mess = messDocs.find(
-        (m) => String(m._id) === String(a._id) || String(m.mess_id) === String(a._id)
-      );
+      const mess =
+        messes.find(
+          (m) =>
+            String(m._id) === String(a._id.messId) ||
+            String(m.mess_id) === String(a._id.messId)
+        ) || null;
+
       return {
-        messId: a._id,
-        name: mess?.name || "Unknown Mess",
+        messId: a._id.messId || "N/A",
+        name: mess?.name || a._id.messName || "Unnamed Mess",
         location: mess?.location || "N/A",
         orderCount: a.orderCount,
         totalRevenue: a.totalRevenue,
       };
     });
 
+    // ✅ 4. Return clean data sorted by revenue
+    result.sort((a, b) => b.totalRevenue - a.totalRevenue);
     res.json(result);
   } catch (error) {
     handleError(res, error, "Error fetching top messes");
   }
 });
 
+/* ============================================================
+   ⭐ Reviews
+   ============================================================ */
 router.get("/reviews", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const reviews = await Review.find()
@@ -421,11 +536,110 @@ router.get("/reviews", authMiddleware, adminMiddleware, async (req, res) => {
 router.delete("/reviews/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const review = await Review.findByIdAndDelete(req.params.id);
-    if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+    if (!review)
+      return res
+        .status(404)
+        .json({ success: false, message: "Review not found" });
     res.json({ success: true, message: "Review deleted successfully" });
   } catch (error) {
     handleError(res, error, "Error deleting review");
   }
 });
 
+/* ============================================================
+   🧭 Admin Dashboard Overview
+   ============================================================ */
+// ✅ FIXED DASHBOARD OVERVIEW — Shows real-time data from database
+router.get("/dashboard", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const COMMISSION_RATE = Number(process.env.COMMISSION_RATE || 10);
+
+    // 🔹 1. Calculate today's confirmed orders
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const todayOrders = await Order.find({
+  status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+  createdAt: { $gte: start, $lte: end },
+});
+
+
+    const totalOrders = todayOrders.length;
+    const totalGrossRevenue = todayOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+    const totalCommission = Math.round((totalGrossRevenue * COMMISSION_RATE) / 100);
+    const totalOwnerRevenue = totalGrossRevenue - totalCommission;
+
+    // 🔹 2. Count messes, owners, students, delivery agents
+    const [totalOwners, totalStudents, totalDeliveryAgents] = await Promise.all([
+      User.countDocuments({ role: "owner" }),
+      User.countDocuments({ role: "student" }),
+      DeliveryAgent.countDocuments(),
+    ]);
+
+    // 🔹 3. 7-day revenue trend
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+
+    const revenueTrend = await Order.aggregate([
+      {
+        $match: {
+  status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
+  createdAt: { $gte: startDate },
+},
+
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata",
+            },
+          },
+          totalRevenue: { $sum: "$total_price" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // 🔹 4. Fill missing days
+    const trendMap = {};
+    revenueTrend.forEach((r) => (trendMap[r._id] = r.totalRevenue));
+
+    const finalTrend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      finalTrend.push({
+        date: key,
+        revenue: trendMap[key] || 0,
+      });
+    }
+
+    // ✅ Send correct response matching frontend expectations
+    res.json({
+      success: true,
+      stats: {
+        totalOrders,
+        totalRevenue: totalOwnerRevenue,
+        totalCommission,
+        totalOwners,
+        totalStudents,
+        totalDeliveryAgents,
+      },
+      trend: finalTrend,
+    });
+  } catch (error) {
+    console.error("💥 Dashboard Error:", error);
+    res.status(500).json({ success: false, message: "Failed to load dashboard", error: error.message });
+  }
+});
+
 export default router;
+

@@ -1,15 +1,32 @@
-// models/MessRequest.js
+// Backend/models/MessRequest.js
 import mongoose from "mongoose";
 
 /* ============================================================
-   🍱 MENU ITEM SCHEMA
+   🍱 MENU ITEM SCHEMA (with image)
    ============================================================ */
 const menuItemSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     price: { type: Number, required: true },
-    description: { type: String },
+    description: { type: String, default: "" },
     isVeg: { type: Boolean, default: true },
+
+    // 🔗 Cloudinary info (from dishImages[])
+    imageUrl: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+/* ============================================================
+   📎 DOCUMENTS
+   ============================================================ */
+const docsSchema = new mongoose.Schema(
+  {
+    pancard: { type: String, default: "" },
+    fssai: { type: String, default: "" },
+    menuPhoto: { type: String, default: "" },
+    bankDetails: { type: String, default: "" },
   },
   { _id: false }
 );
@@ -19,53 +36,39 @@ const menuItemSchema = new mongoose.Schema(
    ============================================================ */
 const messRequestSchema = new mongoose.Schema(
   {
-    // 🧩 Basic Information
+    // Basic
     name: { type: String, required: true },
     location: { type: String, required: true },
     mobile: { type: String, required: true },
     email: { type: String, required: true },
 
-    // 🍽️ Menu Section (same structure as in Mess model)
+    // Banner (mess card image)
+    messBanner: { type: String, default: "" },
+
+    // Menu
     menu: {
       items: { type: [menuItemSchema], default: [] },
     },
 
-    // 💰 Pricing & Offers
-    price_range: { type: String },
-    offer: { type: String },
+    // Pricing & Offers
+    price_range: { type: String, default: "" },
+    offer: { type: String, default: "" },
 
-    // 🖼️ Document Uploads (Stored as Cloudinary URLs)
-    pancard: { type: String },        // PAN Card image URL
-    fssai: { type: String },          // ✅ ADDED: FSSAI License image URL
-    menuPhoto: { type: String },      // Menu image URL
-    bankDetails: { type: String },    // ✅ ADDED: Bank Details document URL
+    // Documents (URLs)
+    documents: { type: docsSchema, default: () => ({}) },
 
-    // 👤 Relationship (Link to Owner)
-    owner_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    // Relationship
+    owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    // ⚙️ Request Status
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
+    // Status
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     reason: { type: String, default: "" },
   },
-  { timestamps: true } // ✅ Automatically adds createdAt & updatedAt
+  { timestamps: true }
 );
 
-/* ============================================================
-   🔍 INDEX CLEANUP
-   ============================================================ */
-// Just in case older versions had unique constraint issues
-messRequestSchema.index({ request_id: 1 }, { unique: false, sparse: true });
+// safety index
+messRequestSchema.index({ createdAt: 1 });
 
-/* ============================================================
-   ✅ EXPORT MODEL
-   ============================================================ */
 const MessRequest = mongoose.model("MessRequest", messRequestSchema);
 export default MessRequest;

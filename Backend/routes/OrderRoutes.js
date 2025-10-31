@@ -1,5 +1,6 @@
-// routes/OrderRoutes.js
+// ✅ routes/OrderRoutes.js — FINAL BUG-FREE VERSION
 import express from "express";
+import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Mess from "../models/Mess.js";
 import { verifyToken } from "../middleware/auth.js";
@@ -7,77 +8,94 @@ import { verifyToken } from "../middleware/auth.js";
 const router = express.Router();
 
 /* ============================================================
-   ✅ POST /orders → Place an order
+   ✅ POST /orders → Place an order (Supports Online & COD)
    ============================================================ */
 router.post("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { mess_id, mess_name, items } = req.body;
+    const { mess_id, mess_name, items, paymentMethod, total_price, status } = req.body;
 
-    console.log("📦 Incoming Order Request:", { userId, mess_id, mess_name, items });
+    console.log("📦 Incoming Order Request:", { userId, mess_id, mess_name, paymentMethod });
 
-    if (!userId)
-      return res.status(401).json({ message: "Unauthorized: user not logged in" });
+    // Step 1 — Validate user
+    if (!userId) return res.status(401).json({ message: "Unauthorized: user not logged in" });
 
+    // Step 2 — Validate items
     if (!Array.isArray(items) || items.length === 0)
       return res.status(400).json({ message: "No food items provided." });
 
-    // ✅ Calculate total price
-    const total_price = items.reduce(
-      (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
-      0
-    );
+    // Step 3 — Compute total safely
+    const finalTotal =
+      total_price ||
+      items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
 
-    // ✅ Find mess (to enrich items)
+    // Step 4 — Smart Mess Lookup (handles both numeric mess_id & ObjectId)
     let mess = null;
-    if (mess_id) mess = await Mess.findOne({ mess_id });
 
-    const updatedItems = items.map((item) => {
-      let menuItem = null;
+    // ✅ Try MongoDB _id
+    if (mess_id && mongoose.Types.ObjectId.isValid(mess_id)) {
+      mess = await Mess.findById(mess_id);
+    }
 
-      if (mess && mess.menu) {
-        if (Array.isArray(mess.menu.items)) {
-          menuItem = mess.menu.items.find(
-            (m) => m.name.toLowerCase() === item.name.toLowerCase()
-          );
-        } else if (Array.isArray(mess.menu)) {
-          mess.menu.forEach((m) => {
-            if (Array.isArray(m.items)) {
-              const found = m.items.find(
-                (x) => x.name.toLowerCase() === item.name.toLowerCase()
-              );
-              if (found) menuItem = found;
-            }
-          });
-        }
-      }
+    // ✅ Try numeric mess_id
+    if (!mess && mess_id && !isNaN(Number(mess_id))) {
+      mess = await Mess.findOne({ mess_id: Number(mess_id) });
+    }
 
-      return {
-        ...item,
-        type: menuItem?.type || (menuItem?.isVeg ? "veg" : "non-veg") || "veg",
-        category: menuItem?.category || "other",
-        image: item.image || menuItem?.image || "default.png",
-      };
-    });
+    // ✅ Try by mess_name if still missing
+    if (!mess && mess_name && mess_name !== "Unknown Mess") {
+      mess = await Mess.findOne({ name: mess_name });
+    }
 
+    if (!mess) {
+      console.warn("⚠️ Mess lookup failed → Fallback to unknown", {
+        received_id: mess_id,
+        received_name: mess_name,
+      });
+    }
+
+    // Step 5 — Prepare items
+    const updatedItems = items.map((item) => ({
+      ...item,
+      type: item.type || "veg",
+      category: item.category || "other",
+      image: item.image || "default.png",
+    }));
+
+    // Step 6 — Order status
+    const paymentMode = paymentMethod || "Online";
+    const orderStatus = paymentMode === "COD" ? "Pending (COD)" : status || "confirmed";
+
+    // Step 7 — Create order
     const newOrder = await Order.create({
       user_id: userId,
-      mess_id: mess_id || mess?._id?.toString() || "N/A",
-      mess_name: mess_name || mess?.name || "Unknown Mess",
+      mess_id: mess?._id?.toString() || (mess_id && String(mess_id)) || "N/A",
+      mess_name: mess?.name || mess_name || "Unknown Mess",
       items: updatedItems,
-      total_price,
-      status: "confirmed",
+      total_price: finalTotal,
+      paymentMethod: paymentMode,
+      status: orderStatus,
     });
 
-    console.log("✅ Order successfully saved:", newOrder._id);
+    console.log("✅ Order Saved Successfully:", {
+      orderId: newOrder._id,
+      mess_name: newOrder.mess_name,
+      mess_id: newOrder.mess_id,
+    });
 
-    return res.status(201).json({
-      message: "Order placed successfully!",
+    // Step 8 — Response
+    res.status(201).json({
+      success: true,
+      message:
+        paymentMode === "COD"
+          ? "COD order placed successfully!"
+          : "Online order placed successfully!",
       order: newOrder,
     });
   } catch (err) {
     console.error("💥 Order placement error:", err);
     res.status(500).json({
+      success: false,
       message: "Failed to place order",
       error: err.message,
     });
@@ -85,46 +103,37 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 /* ============================================================
-   🟢 GET /orders/my-orders → Fetch logged-in user's orders
+   🟢 GET /orders/my-orders
    ============================================================ */
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const userId = req.user?.id;
-    console.log("🧾 Fetching orders for user:", userId);
-
     if (!userId)
       return res.status(401).json({ message: "Unauthorized: No user ID found in token" });
 
     const orders = await Order.find({ user_id: userId }).sort({ createdAt: -1 });
-
     console.log(`✅ Found ${orders.length} orders for user ${userId}`);
-
     res.status(200).json(orders);
   } catch (err) {
     console.error("💥 Error fetching orders:", err);
-    res.status(500).json({
-      message: "Error fetching orders",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Error fetching orders", error: err.message });
   }
 });
 
 /* ============================================================
-   🧩 NEW: GET /orders/owner/:ownerId → Fetch all orders for mess owner
+   🧩 GET /orders/owner/:ownerId
    ============================================================ */
 router.get("/owner/:ownerId", verifyToken, async (req, res) => {
   try {
     const ownerId = req.params.ownerId;
-    console.log("🧾 Fetching orders for owner:", ownerId);
-
-    // ✅ Get all messes owned by this owner
     const messes = await Mess.find({ owner_id: ownerId });
-    const messIds = messes.map((m) => m.mess_id);
+    const messObjectIds = messes.map((m) => m._id.toString());
+    const messNumericIds = messes.map((m) => String(m.mess_id));
 
-    // ✅ Fetch orders linked to those messes
-    const orders = await Order.find({ mess_id: { $in: messIds } }).sort({ createdAt: -1 });
+    const orders = await Order.find({
+      $or: [{ mess_id: { $in: messObjectIds } }, { mess_id: { $in: messNumericIds } }],
+    }).sort({ createdAt: -1 });
 
-    console.log(`✅ Found ${orders.length} orders for owner ${ownerId}`);
     res.status(200).json({ success: true, orders });
   } catch (err) {
     console.error("💥 Error fetching owner orders:", err);

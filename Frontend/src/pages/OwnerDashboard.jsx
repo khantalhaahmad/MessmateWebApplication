@@ -114,20 +114,25 @@ const OwnerDashboard = () => {
   };
 
   const revenueData = {
-    labels: stats.monthlyLabels?.length
-      ? stats.monthlyLabels
-      : ["Week 1", "Week 2", "Week 3", "Week 4"],
-    datasets: [
-      {
-        label: "Revenue (₹)",
-        data: Array.isArray(stats.monthlyRevenue)
-          ? stats.monthlyRevenue
+  labels: stats?.monthlyLabels?.length
+    ? stats.monthlyLabels
+    : ["Week 1", "Week 2", "Week 3", "Week 4"],
+  datasets: [
+    {
+      label: "Revenue (₹)",
+      data:
+        Array.isArray(stats?.monthlyRevenue) &&
+        stats.monthlyRevenue.length > 0
+          ? stats.monthlyRevenue.map((v) => Number(v) || 0)
           : [0, 0, 0, 0],
-        backgroundColor: "#4caf50",
-        borderRadius: 6,
-      },
-    ],
-  };
+      backgroundColor: "#4caf50",
+      borderRadius: 8,
+      barThickness: 40,
+    },
+  ],
+};
+
+
 
   if (loading) return <p className="loading-text">Loading Owner Dashboard...</p>;
 
@@ -138,7 +143,11 @@ const OwnerDashboard = () => {
     <div className="owner-dashboard">
       {/* Sidebar */}
       <aside className="sidebar">
-        <h1 className="logo">MessMate 🍽️</h1>
+        <h1 className="logo">
+  <img src="/assets/messmate.png" alt="MessMate Logo" className="logo-img" />
+  MessMate
+</h1>
+
         <nav className="menu">
           <a href="#overview" className="menu-item active">
             <TrendingUp size={18} /> <span>Overview</span>
@@ -218,13 +227,19 @@ const OwnerDashboard = () => {
           <div className="chart-box">
             <h3>Monthly Revenue 💰</h3>
             <Bar
-              data={revenueData}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } },
-              }}
-            />
+  data={revenueData}
+  options={{
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 50 }, // smoother Y-axis
+      },
+    },
+  }}
+/>
+
           </div>
         </section>
 

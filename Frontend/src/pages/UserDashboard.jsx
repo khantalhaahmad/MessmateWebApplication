@@ -16,7 +16,6 @@ import {
   Star,
   Settings,
   LogOut,
-  MapPin,
   Bell,
   BarChart3,
   Wallet,
@@ -34,7 +33,6 @@ const UserDashboard = () => {
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [orders, setOrders] = useState([]);
-  const [recommendedMesses, setRecommendedMesses] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -43,9 +41,9 @@ const UserDashboard = () => {
     avgOrderValue: 0,
   });
 
-  /* ============================================================
-     🚀 Fetch Dashboard Data
-  ============================================================ */
+  // ============================================================
+  // 🚀 Fetch Dashboard Data
+  // ============================================================
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -66,29 +64,19 @@ const UserDashboard = () => {
           },
         };
 
-        console.log("📡 Fetching dashboard for:", user?.name, "| ID:", user?._id);
-
-        // ✅ Fixed endpoint here (removed /user/)
-        const [ordersRes, recRes, reviewsRes] = await Promise.allSettled([
+        const [ordersRes, reviewsRes] = await Promise.allSettled([
           api.get("/orders/my-orders", config),
-          api.get(`/recommendations/${user._id}`, config),
           api.get(`/reviews/user/${user._id}`, config),
         ]);
 
         const safeOrders = Array.isArray(ordersRes.value?.data)
           ? ordersRes.value.data
           : [];
-        const safeRecs = Array.isArray(recRes.value?.data?.data)
-          ? recRes.value.data.data
-          : [];
         const safeReviews = Array.isArray(reviewsRes.value?.data)
           ? reviewsRes.value.data
           : [];
 
-        console.log("🍱 Recommended data:", safeRecs);
-
         setOrders(safeOrders);
-        setRecommendedMesses(safeRecs);
         setReviews(safeReviews);
 
         const totalOrders = safeOrders.length;
@@ -99,7 +87,6 @@ const UserDashboard = () => {
         const avgOrderValue = totalOrders ? totalSpent / totalOrders : 0;
 
         setStats({ totalOrders, totalSpent, avgOrderValue });
-        console.log("✅ Dashboard Data Loaded:", { totalOrders, totalSpent, avgOrderValue });
       } catch (err) {
         console.error("❌ Dashboard Fetch Failed:", err);
         Swal.fire({
@@ -117,9 +104,9 @@ const UserDashboard = () => {
     fetchData();
   }, [authLoading, user, navigate]);
 
-  /* ============================================================
-     🚪 Logout Handling
-  ============================================================ */
+  // ============================================================
+  // 🚪 Logout Handling
+  // ============================================================
   const handleLogoutClick = () => setShowLogoutPopup(true);
   const handleCancelLogout = () => setShowLogoutPopup(false);
   const handleConfirmLogout = () => {
@@ -129,11 +116,10 @@ const UserDashboard = () => {
   };
 
   const handleGoHome = () => navigate("/");
-  const handleMessClick = (id) => navigate(`/messes/id/${id}`);
 
-  /* ============================================================
-     🕓 Loading & Auth States
-  ============================================================ */
+  // ============================================================
+  // 🕓 Loading & Auth States
+  // ============================================================
   if (authLoading || loading)
     return (
       <div
@@ -154,9 +140,54 @@ const UserDashboard = () => {
     return null;
   }
 
-  /* ============================================================
-     🧭 Render Dashboard UI
-  ============================================================ */
+  // ============================================================
+  // 📊 Weekly Orders Data
+  // ============================================================
+  const weeklyData = {
+    labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    datasets: [
+      {
+        label: "Orders",
+        data: Array(7)
+          .fill(0)
+          .map((_, i) =>
+            orders.filter((o) => new Date(o.createdAt).getDay() === i).length
+          ),
+        backgroundColor: "rgba(59, 130, 246, 0.9)", // nice blue tone
+        borderRadius: 6,
+        hoverBackgroundColor: "rgba(37, 99, 235, 1)",
+        barThickness: 35,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false, // allows height control via CSS
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1e293b",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: "#64748b" },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, color: "#64748b" },
+        grid: { color: "rgba(226, 232, 240, 0.4)" },
+      },
+    },
+  };
+
+  // ============================================================
+  // 🧭 Render Dashboard UI
+  // ============================================================
   return (
     <div className="dashboard">
       {/* Sidebar */}
@@ -227,38 +258,117 @@ const UserDashboard = () => {
         </div>
 
         {/* Weekly Chart */}
-        <section className="chart-section">
-          <h3>Your Weekly Orders 📊</h3>
-          {orders.length > 0 ? (
-            <Bar
-              data={{
-                labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-                datasets: [
-                  {
-                    label: "Orders",
-                    data: Array(7)
-                      .fill(0)
-                      .map((_, i) =>
-                        orders.filter(
-                          (o) => new Date(o.createdAt).getDay() === i
-                        ).length
-                      ),
-                    backgroundColor: "#FF5722",
-                    borderRadius: 6,
-                  },
-                ],
-              }}
-              options={{
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-              }}
-            />
-          ) : (
-            <p style={{ textAlign: "center", color: "#999" }}>
-              No orders yet — start ordering to see insights!
-            </p>
-          )}
-        </section>
+<section className="chart-section">
+  <div className="chart-header">
+    <h3>Your Weekly Orders 📊</h3>
+    <p className="chart-subtitle">
+      Number of orders placed this week — visualized by day.
+    </p>
+  </div>
+
+  <div className="chart-container">
+    <Bar
+      data={{
+        labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        datasets: [
+          {
+            label: "Orders",
+            data: Array(7)
+              .fill(0)
+              .map(
+                (_, i) =>
+                  orders.filter((o) => new Date(o.createdAt).getDay() === i)
+                    .length
+              ),
+            borderRadius: 8,
+            backgroundColor: function (context) {
+              const chart = context.chart;
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return null;
+              const gradient = ctx.createLinearGradient(
+                0,
+                chartArea.bottom,
+                0,
+                chartArea.top
+              );
+              gradient.addColorStop(0, "#3b82f6"); // blue
+              gradient.addColorStop(1, "#06b6d4"); // teal
+              return gradient;
+            },
+            hoverBackgroundColor: "#2563eb",
+            barThickness: 40,
+          },
+        ],
+      }}
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#1e293b",
+            titleColor: "#fff",
+            bodyColor: "#e2e8f0",
+            titleFont: { size: 14 },
+            bodyFont: { size: 13 },
+            callbacks: {
+              label: function (context) {
+                return `Orders: ${context.parsed.y}`;
+              },
+            },
+          },
+          title: {
+            display: false,
+          },
+          datalabels: {
+            display: true,
+            color: "#1e293b",
+            anchor: "end",
+            align: "top",
+            font: { size: 12, weight: "bold" },
+            formatter: (value) => (value > 0 ? value : ""),
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: "#475569", font: { size: 13, weight: "bold" } },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              color: "#475569",
+              font: { size: 12 },
+            },
+            grid: { color: "rgba(226, 232, 240, 0.5)" },
+          },
+        },
+      }}
+      plugins={[
+        {
+          id: "datalabels",
+          afterDatasetsDraw: (chart) => {
+            const ctx = chart.ctx;
+            chart.data.datasets.forEach((dataset, i) => {
+              const meta = chart.getDatasetMeta(i);
+              meta.data.forEach((bar, index) => {
+                const value = dataset.data[index];
+                if (value > 0) {
+                  ctx.fillStyle = "#1e293b";
+                  ctx.font = "bold 12px sans-serif";
+                  ctx.textAlign = "center";
+                  ctx.fillText(value, bar.x, bar.y - 8);
+                }
+              });
+            });
+          },
+        },
+      ]}
+    />
+  </div>
+</section>
+
 
         {/* Orders Table */}
         <section id="orders" className="recent-orders">
@@ -319,47 +429,6 @@ const UserDashboard = () => {
               ))
             ) : (
               <p style={{ color: "#888" }}>No reviews yet.</p>
-            )}
-          </div>
-        </section>
-
-        {/* ✅ Recommended Messes */}
-        <section id="recommended" className="recommended">
-          <h3>Recommended Messes 🍱</h3>
-          <div className="mess-grid">
-            {recommendedMesses.length === 0 ? (
-              <p style={{ color: "#999" }}>No recommendations yet.</p>
-            ) : (
-              recommendedMesses.map((mess, index) => (
-                <div
-                  key={index}
-                  className="mess-card"
-                  onClick={() => handleMessClick(mess.mess_id)}
-                >
-                  <img
-                    src={
-                      mess.image?.startsWith("http")
-                        ? mess.image
-                        : "/assets/default-mess.png"
-                    }
-                    alt={mess.name || mess.mess_name || "Mess"}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/assets/default-mess.png";
-                    }}
-                  />
-                  <h4>{mess.name || mess.mess_name || "Unknown Mess"}</h4>
-                  <div className="mess-info">
-                    <span className="rating">
-                      <Star size={14} className="yellow" />{" "}
-                      {mess.rating?.toFixed(1) || "4.5"}
-                    </span>
-                    <span className="distance">
-                      <MapPin size={14} /> {mess.category || "N/A"}
-                    </span>
-                  </div>
-                </div>
-              ))
             )}
           </div>
         </section>
