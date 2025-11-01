@@ -361,6 +361,58 @@
 .reject-btn:hover {
   background-color: #c82333;
 }
+/* 💰 Payout Section Styling */
+.payout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cycle-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.cycle-filter select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.cycle-filter select:hover {
+  border-color: #007bff;
+}
+
+.cycle-info {
+  color: #555;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.payout-table-wrapper {
+  overflow-x: auto;
+}
+
+.status-badge.paid {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
 
 
 @keyframes spin {

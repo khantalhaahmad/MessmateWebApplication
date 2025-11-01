@@ -28,6 +28,19 @@ const AdminDashboard = () => {
   // 💰 Payout states
 const [payouts, setPayouts] = useState([]);
 const [loadingPayouts, setLoadingPayouts] = useState(false);
+// 💰 Settlement Cycle states
+const [selectedCycle, setSelectedCycle] = useState("");
+const [currentCycle, setCurrentCycle] = useState("");
+
+// 🧮 Helper: detect current 10-day settlement cycle
+function getSettlementCycle(date = new Date()) {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  const cycle = day <= 10 ? 1 : day <= 20 ? 2 : 3;
+  return `${year}-${month.toString().padStart(2, "0")}-C${cycle}`;
+}
+
 
 
   const { user, logout } = useContext(AuthContext);
@@ -97,17 +110,21 @@ const [loadingPayouts, setLoadingPayouts] = useState(false);
   };
 
   useEffect(() => {
-  fetchDashboardData();                      // ⬅️ existing call (keep it)
-  if (user?.role === "admin") fetchPayouts(); // ⬅️ ✅ add this new line
-}, [user]);                                   // ⬅️ keep same dependency
+  const cycle = getSettlementCycle();
+  setCurrentCycle(cycle);
+  setSelectedCycle(cycle);
+
+  fetchDashboardData();
+  if (user?.role === "admin") fetchPayouts(cycle);
+}, [user]);
 
   // =============================
 // 💰 FETCH PAYOUT DATA
 // =============================
-const fetchPayouts = async () => {
+const fetchPayouts = async (cycle = "") => {
   setLoadingPayouts(true);
   try {
-    const res = await api.get("/admin/owner-payouts", {
+    const res = await api.get(`/admin/owner-payouts?cycle=${cycle}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setPayouts(res.data || []);
@@ -118,6 +135,7 @@ const fetchPayouts = async () => {
     setLoadingPayouts(false);
   }
 };
+
 // =============================
 // 💵 MARK AS PAID HANDLER (UPDATED)
 // =============================
@@ -325,63 +343,109 @@ const handleApprove = async (id) => {
       </section>
       {/* 💰 PAYOUTS SECTION */}
 <section className="table-section">
-  <h2>💰 Mess Owner Payouts</h2>
+  <div className="payout-header">
+    <h2>💰 Mess Owner Payouts</h2>
+
+    {/* 🔽 Settlement Cycle Filter */}
+    <div className="cycle-filter">
+      <label>📅 Select Cycle:</label>
+      <select
+        value={selectedCycle}
+        onChange={(e) => {
+          setSelectedCycle(e.target.value);
+          fetchPayouts(e.target.value);
+        }}
+      >
+        <option value="">All Cycles</option>
+        <option
+          value={`${new Date().getFullYear()}-${String(
+            new Date().getMonth() + 1
+          ).padStart(2, "0")}-C1`}
+        >
+          1 – 10 {new Date().toLocaleString("default", { month: "short" })}
+        </option>
+        <option
+          value={`${new Date().getFullYear()}-${String(
+            new Date().getMonth() + 1
+          ).padStart(2, "0")}-C2`}
+        >
+          11 – 20 {new Date().toLocaleString("default", { month: "short" })}
+        </option>
+        <option
+          value={`${new Date().getFullYear()}-${String(
+            new Date().getMonth() + 1
+          ).padStart(2, "0")}-C3`}
+        >
+          21 – 30 {new Date().toLocaleString("default", { month: "short" })}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <p className="cycle-info">
+    Showing records for:{" "}
+    <b>{selectedCycle || "All Current Cycles (This Month)"}</b>
+  </p>
+
+  {/* 💸 Payout Table */}
   {loadingPayouts ? (
     <p>Loading payouts...</p>
   ) : payouts.length === 0 ? (
     <p>No payout data available.</p>
   ) : (
-    <table className="earnings-table">
-      <thead>
-        <tr>
-          <th>Mess</th>
-          <th>Owner</th>
-          <th>Email</th>
-          <th>Orders</th>
-          <th>Revenue</th>
-          <th>Commission</th>
-          <th>Payable</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {payouts.map((p, idx) => (
-          <tr key={idx}>
-            <td>{p.messName}</td>
-            <td>{p.ownerName}</td>
-            <td>{p.ownerEmail}</td>
-            <td>{p.totalOrders}</td>
-            <td>₹{p.totalRevenue}</td>
-            <td>₹{p.commission}</td>
-            <td>₹{p.payable}</td>
-            <td>
-              <span
-                className={`status-badge ${
-                  p.payoutStatus === "Paid" ? "paid" : "pending"
-                }`}
-              >
-                {p.payoutStatus}
-              </span>
-            </td>
-            <td>
-              {p.payoutStatus === "Pending" ? (
-                <button
-                  className="approve-btn"
-                  onClick={() => markAsPaid(p.messId)} // ✅ updated line
-                >
-                  Mark as Paid
-                </button>
-              ) : (
-                <button className="paid-btn" disabled>
-                  ✓ Paid
-                </button>
-              )}
-            </td>
+    <div className="payout-table-wrapper">
+      <table className="earnings-table">
+        <thead>
+          <tr>
+            <th>Mess</th>
+            <th>Owner</th>
+            <th>Email</th>
+            <th>Orders</th>
+            <th>Revenue</th>
+            <th>Commission</th>
+            <th>Payable</th>
+            <th>Status</th>
+            <th>Action</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {payouts.map((p, idx) => (
+            <tr key={idx}>
+              <td>{p.messName}</td>
+              <td>{p.ownerName}</td>
+              <td>{p.ownerEmail}</td>
+              <td>{p.totalOrders}</td>
+              <td>₹{p.totalRevenue}</td>
+              <td>₹{p.commission}</td>
+              <td>₹{p.payable}</td>
+              <td>
+                <span
+                  className={`status-badge ${
+                    p.payoutStatus === "Paid" ? "paid" : "pending"
+                  }`}
+                >
+                  {p.payoutStatus}
+                </span>
+              </td>
+              <td>
+                {p.payoutStatus === "Pending" ? (
+                  <button
+                    className="approve-btn"
+                    onClick={() => markAsPaid(p.messId)}
+                  >
+                    Mark as Paid
+                  </button>
+                ) : (
+                  <button className="paid-btn" disabled>
+                    ✓ Paid
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )}
 </section>
 

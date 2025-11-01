@@ -8,6 +8,8 @@ import MessRequest from "../models/MessRequest.js";
 import Review from "../models/Review.js";
 import DeliveryAgent from "../models/DeliveryAgent.js";
 import DeliveryRequest from "../models/DeliveryRequest.js";
+import Payout from "../models/Payout.js";
+
 
 const router = express.Router();
 
@@ -63,6 +65,8 @@ router.put("/payout-status", authMiddleware, adminMiddleware, async (req, res) =
     // ✅ Update and save
     mess.payoutStatus = payoutStatus || "Paid";
     await mess.save();
+    await Payout.updateMany({ messId }, { payoutStatus });
+
 
     console.log(`✅ Payout status updated for Mess: ${mess.name} (${mess._id}) → ${mess.payoutStatus}`);
 
@@ -180,46 +184,61 @@ router.get("/revenue-trends", authMiddleware, adminMiddleware, async (req, res) 
 });
 
 /* ============================================================
-   5️⃣ Owner Payouts (Monthly) — Unified, Deduplicated, Dynamic Commission
+   5️⃣ Owner Payouts (10-Day Cycle Based like Zomato)
    ============================================================ */
+import { getSettlementCycle } from "../utils/getSettlementCycle.js"; // ✅ make sure this file exists
+
 router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const COMMISSION_RATE = Number(process.env.COMMISSION_RATE || 10);
+    const { cycle } = req.query;
 
-    // 🧠 Step 1: Aggregate orders (include all relevant statuses)
-    const monthlyOrders = await Order.aggregate([
+    // 🧠 If no cycle is provided, use current one automatically
+    const now = new Date();
+    const activeCycle = cycle || getSettlementCycle(now);
+
+    // 🔹 Determine 10-day window for the selected cycle
+    const [year, month, cyclePart] = activeCycle.split("-");
+    const y = parseInt(year);
+    const m = parseInt(month) - 1;
+    let startDay = 1, endDay = 10;
+
+    if (cyclePart === "C2") {
+      startDay = 11;
+      endDay = 20;
+    } else if (cyclePart === "C3") {
+      startDay = 21;
+      endDay = 30;
+    }
+
+    const start = new Date(y, m, startDay);
+    const end = new Date(y, m, endDay + 1);
+
+    console.log(`📅 Fetching payouts for cycle: ${activeCycle} (${start.toDateString()} → ${end.toDateString()})`);
+
+    // 🧮 Step 1: Aggregate orders for this cycle
+    const orders = await Order.aggregate([
       {
         $match: {
           status: { $in: ["confirmed", "Pending (COD)", "delivered"] },
-          createdAt: { $gte: start },
+          createdAt: { $gte: start, $lt: end },
         },
       },
       {
         $group: {
-          _id: {
-            mess_id: "$mess_id",
-            mess_name: "$mess_name",
-          },
+          _id: { mess_id: "$mess_id", mess_name: "$mess_name" },
           totalRevenue: { $sum: "$total_price" },
           totalOrders: { $sum: 1 },
         },
       },
     ]);
 
-    // 🧠 Step 2: Normalize + merge duplicates by mess name or ID
+    // 🧩 Step 2: Combine duplicates (some messes may have mixed IDs)
     const mergedMap = new Map();
-
-    monthlyOrders.forEach((entry) => {
+    orders.forEach((entry) => {
       const rawMessId = entry._id.mess_id?.toString()?.trim();
       const rawMessName = entry._id.mess_name?.toLowerCase()?.trim();
-
-      // 🧩 Create a unique key using either mess_id or mess_name
-      const key =
-        rawMessId && rawMessId !== "N/A" && rawMessId !== "null"
-          ? rawMessId
-          : rawMessName || "unknown";
+      const key = rawMessId || rawMessName || "unknown";
 
       if (!mergedMap.has(key)) {
         mergedMap.set(key, { ...entry });
@@ -240,22 +259,15 @@ router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) =
         const entryName = entry._id.mess_name;
         let mess = null;
 
-        // ✅ Try matching by ObjectId
+        // 🔍 Try matching Mess record
         if (entryId && /^[0-9a-fA-F]{24}$/.test(entryId)) {
           mess = await Mess.findById(entryId).populate("owner_id", "name email");
-        }
-
-        // ✅ Try matching by numeric mess_id
-        if (!mess && !isNaN(Number(entryId))) {
+        } else if (!mess && !isNaN(Number(entryId))) {
           mess = await Mess.findOne({ mess_id: Number(entryId) }).populate("owner_id", "name email");
-        }
-
-        // ✅ Try matching by name
-        if (!mess && entryName && entryName !== "Unknown Mess") {
+        } else if (!mess && entryName) {
           mess = await Mess.findOne({ name: entryName }).populate("owner_id", "name email");
         }
 
-        // ✅ Compute payout values
         const owner = mess?.owner_id || {};
         const commission = Math.round((entry.totalRevenue * COMMISSION_RATE) / 100);
         const payable = Math.round(entry.totalRevenue - commission);
@@ -271,11 +283,12 @@ router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) =
           commission,
           payable,
           payoutStatus: mess?.payoutStatus || "Pending",
+          settlementCycle: activeCycle, // ✅ important
         };
       })
     );
 
-    // ✅ Step 4: Merge duplicates that might differ only by case or type
+    // 🧾 Step 4: Merge duplicates that might differ by case
     const finalMerged = [];
     const seen = new Set();
 
@@ -298,8 +311,6 @@ router.get("/owner-payouts", authMiddleware, adminMiddleware, async (req, res) =
     handleError(res, error, "Error generating owner payouts");
   }
 });
-
-
 /* ============================================================
    6️⃣ Mess Requests (Approve / Reject)
    ============================================================ */
@@ -310,44 +321,8 @@ router.get("/mess-requests/pending", authMiddleware, adminMiddleware, async (req
       .sort({ createdAt: -1 });
     res.json(pending);
   } catch (error) {
-    handleError(res, error, "Error fetching pending mess requests");
-  }
-});
-
-router.put("/mess-request/:id/approve", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const request = await MessRequest.findById(req.params.id);
-    if (!request) return res.status(404).json({ success: false, message: "Request not found" });
-
-    const newMess = await Mess.create({
-      name: request.name,
-      location: request.location,
-      owner_id: request.owner_id,
-      price_range: request.price_range || "",
-      offer: request.offer || "",
-      menu: request.menu || { items: [] },
-      status: "active",
-      documents: {
-        pancard: request.pancard || "",
-        fssai: request.fssai || "",
-        menuPhoto: request.menuPhoto || "",
-        bankDetails: request.bankDetails || "",
-      },
-    });
-
-    await request.deleteOne();
-    res.json({ success: true, message: "Mess approved", mess: newMess });
-  } catch (error) {
-    handleError(res, error, "Error approving mess request");
-  }
-});
-
-router.put("/mess-request/:id/reject", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    await MessRequest.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Mess request rejected" });
-  } catch (error) {
-    handleError(res, error, "Error rejecting mess request");
+    console.error("❌ Error fetching pending mess requests:", error);
+    res.status(500).json({ success: false, message: "Error fetching pending mess requests" });
   }
 });
 
@@ -356,108 +331,29 @@ router.put("/mess-request/:id/reject", authMiddleware, adminMiddleware, async (r
    ============================================================ */
 router.get("/delivery-requests/pending", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const pending = await DeliveryRequest.find({ status: "pending" }).sort({ createdAt: -1 });
+    const pending = await DeliveryRequest.find({ status: "pending" })
+      .sort({ createdAt: -1 });
     res.json(pending);
   } catch (error) {
-    handleError(res, error, "Error fetching delivery requests");
+    console.error("❌ Error fetching delivery requests:", error);
+    res.status(500).json({ success: false, message: "Error fetching delivery requests" });
   }
 });
 
-router.put("/delivery-request/:id/approve", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const request = await DeliveryRequest.findById(req.params.id);
-    if (!request) return res.status(404).json({ success: false, message: "Request not found" });
-
-    await DeliveryAgent.create({
-      name: request.name,
-      phone: request.phone,
-      email: request.email,
-      city: request.city,
-      vehicleType: request.vehicleType,
-      vehicleNumber: request.vehicleNumber,
-      status: "available",
-    });
-
-    await request.deleteOne();
-    res.json({ success: true, message: "Delivery agent approved" });
-  } catch (error) {
-    handleError(res, error, "Error approving delivery request");
-  }
-});
-
-router.put("/delivery-request/:id/reject", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    await DeliveryRequest.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Delivery request rejected" });
-  } catch (error) {
-    handleError(res, error, "Error rejecting delivery request");
-  }
-});
 
 /* ============================================================
-   8️⃣ Lists, Top Messes, Reviews (✅ FIXED)
-   ============================================================ */
-router.get("/mess-list", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const messes = await Mess.find()
-      .sort({ createdAt: -1 })
-      .populate("owner_id", "name email");
-    res.json(messes);
-  } catch (error) {
-    handleError(res, error, "Error fetching mess list");
-  }
-});
-
-router.get("/owners", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const owners = await User.find({ role: "owner" }).select("name email");
-    const messes = await Mess.find().select("name owner_id");
-    const data = owners.map((o) => ({
-      ownerName: o.name,
-      email: o.email,
-      messes: messes
-        .filter((m) => m.owner_id?.toString() === o._id.toString())
-        .map((m) => m.name),
-    }));
-    res.json(data);
-  } catch (error) {
-    handleError(res, error, "Error fetching owners");
-  }
-});
-
-router.get("/students", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const students = await User.find({ role: "student" }).select(
-      "name email createdAt"
-    );
-    res.json(students);
-  } catch (error) {
-    handleError(res, error, "Error fetching students");
-  }
-});
-
-router.get("/delivery-agents", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const agents = await DeliveryAgent.find().sort({ createdAt: -1 });
-    res.json(agents);
-  } catch (error) {
-    handleError(res, error, "Error fetching delivery agents");
-  }
-});
-
-/* ============================================================
-   🏆 Top Performing Messes — FIXED for Real Database Data
+   🏆 Top Performing Messes — Merged + Ranked (Fixed for Real Data)
    ============================================================ */
 router.get("/top-messes", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 5, 20);
+    const limit = Math.min(Number(req.query.limit) || 10, 50);
     const sinceDays = Number(req.query.sinceDays) || 30;
 
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - sinceDays);
     sinceDate.setHours(0, 0, 0, 0);
 
-    // ✅ 1. Aggregate orders by both mess_id & mess_name
+    // ✅ 1. Aggregate orders by mess_id & mess_name
     const agg = await Order.aggregate([
       {
         $match: {
@@ -467,53 +363,65 @@ router.get("/top-messes", authMiddleware, adminMiddleware, async (req, res) => {
       },
       {
         $group: {
-          _id: { messId: "$mess_id", messName: "$mess_name" },
+          _id: {
+            messId: "$mess_id",
+            messName: "$mess_name",
+          },
           orderCount: { $sum: 1 },
           totalRevenue: { $sum: { $ifNull: ["$total_price", 0] } },
         },
       },
-      { $sort: { totalRevenue: -1, orderCount: -1 } },
-      { $limit: limit },
     ]);
 
-    // ✅ 2. Collect all unique mess IDs to fetch actual Mess documents
-    const messIds = agg.map((a) => a._id.messId).filter(Boolean);
-    const objectIds = messIds.filter((id) => /^[0-9a-fA-F]{24}$/.test(String(id)));
-    const numericIds = messIds
-      .map((id) => Number(id))
-      .filter((id) => !isNaN(id) && id !== 0);
+    // ✅ 2. Merge duplicates by normalized mess name (ignore case & spaces)
+    const mergedMap = new Map();
+    agg.forEach((entry) => {
+      const normalizedName = (entry._id.messName || "Unknown")
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      if (!mergedMap.has(normalizedName)) {
+        mergedMap.set(normalizedName, {
+          messId: entry._id.messId || "N/A",
+          messName: entry._id.messName || "Unknown Mess",
+          orderCount: entry.orderCount,
+          totalRevenue: entry.totalRevenue,
+        });
+      } else {
+        const existing = mergedMap.get(normalizedName);
+        existing.orderCount += entry.orderCount;
+        existing.totalRevenue += entry.totalRevenue;
+      }
+    });
 
-    const messes = await Mess.find({
-      $or: [
-        { _id: { $in: objectIds } },
-        { mess_id: { $in: numericIds } },
-      ],
-    })
-      .select("name location mess_id")
-      .lean();
+    const merged = Array.from(mergedMap.values());
 
-    // ✅ 3. Combine order aggregation + mess data
-    const result = agg.map((a) => {
-      const mess =
-        messes.find(
-          (m) =>
-            String(m._id) === String(a._id.messId) ||
-            String(m.mess_id) === String(a._id.messId)
-        ) || null;
+    // ✅ 3. Fetch mess data for location enrichment
+    const messes = await Mess.find().select("name location mess_id").lean();
+
+    const result = merged.map((entry) => {
+      const match = messes.find(
+        (m) =>
+          m.name.toLowerCase().replace(/\s+/g, "") ===
+          entry.messName.toLowerCase().replace(/\s+/g, "")
+      );
 
       return {
-        messId: a._id.messId || "N/A",
-        name: mess?.name || a._id.messName || "Unnamed Mess",
-        location: mess?.location || "N/A",
-        orderCount: a.orderCount,
-        totalRevenue: a.totalRevenue,
+        messId: match?._id?.toString() || entry.messId,
+        name: match?.name || entry.messName,
+        location: match?.location || "N/A",
+        orderCount: entry.orderCount,
+        totalRevenue: entry.totalRevenue,
       };
     });
 
-    // ✅ 4. Return clean data sorted by revenue
+    // ✅ 4. Sort and assign ranks
     result.sort((a, b) => b.totalRevenue - a.totalRevenue);
-    res.json(result);
+    const ranked = result.map((m, i) => ({ rank: i + 1, ...m }));
+
+    // ✅ 5. Return top messes (limit)
+    res.json(ranked.slice(0, limit));
   } catch (error) {
+    console.error("💥 Error fetching top messes:", error);
     handleError(res, error, "Error fetching top messes");
   }
 });
