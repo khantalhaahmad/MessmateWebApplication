@@ -338,6 +338,69 @@
   color: #999;
   padding: 15px 0;
 }
+/* 🔍 SEARCH SECTION */
+.search-section {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 1.5rem 0 1rem;
+  padding-left: 1rem;
+}
+
+/* ✨ SEARCH CONTAINER */
+.search-container {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 0.6rem 1rem;
+  transition: all 0.25s ease;
+  width: 340px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.search-container:hover {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+/* 🔍 ICON */
+.search-icon {
+  font-size: 18px;
+  color: #5b86e5; /* matches your blue gradient */
+  margin-right: 0.7rem;
+  user-select: none;
+}
+
+/* 🖊 INPUT */
+.search-input {
+  border: none;
+  outline: none;
+  flex: 1;
+  background: transparent;
+  font-size: 15px;
+  color: #333;
+  padding: 6px 0;
+  letter-spacing: 0.3px;
+}
+
+.search-input::placeholder {
+  color: #aaa;
+  transition: color 0.2s ease;
+}
+
+.search-input:focus::placeholder {
+  color: #888;
+}
+
+/* 🪄 Optional: Make it fit better in smaller screens */
+@media (max-width: 600px) {
+  .search-container {
+    width: 100%;
+  }
+}
+
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {

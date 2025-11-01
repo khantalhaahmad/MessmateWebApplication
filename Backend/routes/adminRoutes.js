@@ -453,6 +453,88 @@ router.delete("/reviews/:id", authMiddleware, adminMiddleware, async (req, res) 
     handleError(res, error, "Error deleting review");
   }
 });
+/* ============================================================
+   👥 Admin — Owners, Students, Delivery Agents Lists
+   ============================================================ */
+
+
+// ✅ Get all Students
+router.get("/students", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const students = await User.find({ role: "student" })
+      .select("name email role createdAt")
+      .sort({ createdAt: -1 });
+    res.json(students);
+  } catch (error) {
+    console.error("❌ Error fetching students:", error);
+    res.status(500).json({ success: false, message: "Failed to load students" });
+  }
+});
+
+// ✅ Get all Delivery Agents
+router.get("/delivery-agents", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const agents = await DeliveryAgent.find().sort({ createdAt: -1 });
+    res.json(agents);
+  } catch (error) {
+    console.error("❌ Error fetching delivery agents:", error);
+    res.status(500).json({ success: false, message: "Failed to load delivery agents" });
+  }
+});
+/* ============================================================
+   👨‍🍳 GET ALL MESS OWNERS — POPULATED FROM MESS ↔ USER
+   ============================================================ */
+router.get("/owners", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    // 1️⃣ Fetch all messes and populate owner details
+    const messes = await Mess.find()
+      .populate("owner_id", "name email role")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 2️⃣ Group messes by unique owner
+    const ownerMap = new Map();
+
+    messes.forEach((mess) => {
+      const owner = mess.owner_id;
+      if (!owner) return;
+
+      const key = owner._id.toString();
+      if (!ownerMap.has(key)) {
+        ownerMap.set(key, {
+          ownerName: owner.name || "—",
+          email: owner.email || "—",
+          messes: [],
+        });
+      }
+
+      ownerMap.get(key).messes.push(mess.name || "Unnamed Mess");
+    });
+
+    // 3️⃣ Add owners who exist but don’t have a mess yet
+    const allOwners = await User.find({ role: "owner" }).select("name email").lean();
+
+    allOwners.forEach((owner) => {
+      const key = owner._id.toString();
+      if (!ownerMap.has(key)) {
+        ownerMap.set(key, {
+          ownerName: owner.name || "—",
+          email: owner.email || "—",
+          messes: ["—"], // no mess linked yet
+        });
+      }
+    });
+
+    // 4️⃣ Convert map to array and send
+    const ownerList = Array.from(ownerMap.values());
+    res.json(ownerList);
+  } catch (error) {
+    console.error("💥 Error fetching mess owners:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load mess owners" });
+  }
+});
 
 /* ============================================================
    🧭 Admin Dashboard Overview
