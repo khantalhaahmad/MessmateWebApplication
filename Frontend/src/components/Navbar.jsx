@@ -1,14 +1,19 @@
 import React, { useContext } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
-import "./Navbar.css"; // ✅ Path correct for component folder
+import "./Navbar.css";
 
 const Navbar = () => {
   const { user } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Detect current route
   const isHome = location.pathname === "/";
+
+  // 🔁 Navigate to AuthPage with mode (optional)
+  const handleAuthRedirect = (mode) => {
+    navigate("/auth", { state: { mode } }); // "mode" can be "login" or "signup"
+  };
 
   return (
     <nav className="navbar">
@@ -45,12 +50,12 @@ const Navbar = () => {
         {/* ✅ Auth buttons only if not logged in */}
         {!user && (
           <>
-            <Link to="/login" className="nav-btn auth-btn">
+            <button onClick={() => handleAuthRedirect("login")} className="nav-btn auth-btn">
               Login
-            </Link>
-            <Link to="/signup" className="nav-btn auth-btn">
+            </button>
+            <button onClick={() => handleAuthRedirect("signup")} className="nav-btn auth-btn">
               Signup
-            </Link>
+            </button>
           </>
         )}
       </div>

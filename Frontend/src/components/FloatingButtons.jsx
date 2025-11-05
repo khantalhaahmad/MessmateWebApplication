@@ -1,6 +1,6 @@
-// src/components/FloatingButtons.jsx
+// ✅ src/components/FloatingButtons.jsx — Updated for AuthPage
 import React, { useContext, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
 import "../styles/FloatingButtons.css";
 
@@ -44,12 +44,11 @@ const FloatingButtons = () => {
     observer.observe(messSection);
     observer.observe(footerSection);
 
-    // ✅ Detect section color for theme adjustment
+    // ✅ Detect white section for color theme
     const colorObserver = new IntersectionObserver(
       ([entry]) => setIsOnWhiteSection(entry.isIntersecting),
       { threshold: 0.3 }
     );
-
     colorObserver.observe(betterFoodSection);
 
     return () => {
@@ -58,10 +57,10 @@ const FloatingButtons = () => {
     };
   }, [location.pathname]);
 
-  // ✅ Handle dashboard click based on role
+  // ✅ Handle dashboard navigation based on role
   const handleDashboardClick = () => {
     if (!user) {
-      navigate("/login");
+      navigate("/auth", { state: { mode: "login" } });
       return;
     }
 
@@ -80,6 +79,11 @@ const FloatingButtons = () => {
     }
   };
 
+  // ✅ Handle login/signup redirects
+  const handleAuthRedirect = (mode) => {
+    navigate("/auth", { state: { mode } });
+  };
+
   return (
     <div
       className={`floating-buttons ${visible ? "show" : "hide"} ${
@@ -88,12 +92,18 @@ const FloatingButtons = () => {
     >
       {!user ? (
         <>
-          <Link to="/login" className="floating-btn glass-btn glow-btn">
+          <button
+            onClick={() => handleAuthRedirect("login")}
+            className="floating-btn glass-btn glow-btn"
+          >
             Login
-          </Link>
-          <Link to="/signup" className="floating-btn glass-btn glow-btn">
+          </button>
+          <button
+            onClick={() => handleAuthRedirect("signup")}
+            className="floating-btn glass-btn glow-btn"
+          >
             Signup
-          </Link>
+          </button>
         </>
       ) : (
         <button

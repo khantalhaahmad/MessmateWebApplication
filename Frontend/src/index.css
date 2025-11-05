@@ -10,3 +10,27 @@ html, body {
   background: none !important;  /* remove black background */
   overflow-x: hidden;
 }
+/* ✅ Lenis Smooth Scroll Fix */
+html,
+body {
+  height: auto !important;
+  overflow: auto !important;
+  overscroll-behavior: none;
+}
+
+body.lenis,
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}

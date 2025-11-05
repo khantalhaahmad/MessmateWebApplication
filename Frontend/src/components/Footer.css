@@ -1,123 +1,206 @@
+/* ============================================================
+   🌑 FOOTER — Clean Modern Zomato-Style Layout
+============================================================ */
 .footer {
   background-color: #0d0d0d;
   color: #fff;
-  padding: 50px 100px 25px;
-  font-family: "Inter", sans-serif;
-  border-top: 1px solid #1a1a1a;
+  padding: 60px 80px 40px;
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  position: relative;
 }
 
-/* 🔶 Logo & Text Row */
+/* ==============================
+   🔶 Brand Section
+============================== */
 .footer-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 25px;
-  margin-left: 120px; /* move MessMate slightly right */
+  gap: 12px;
+  justify-content: flex-start;
+  margin-left: 40px; /* ✅ Slight right offset for logo/title */
+  text-align: left;
 }
 
 .footer-logo {
-  width: 46px;
-  height: 46px;
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
 }
 
 .footer-title {
-  font-size: 36px;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #fff;
-  letter-spacing: 0.3px;
 }
 
-/* 📚 Footer Grid — move all to the right */
+/* ==============================
+   📚 Footer Columns Grid
+============================== */
 .footer-grid {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-start;
-  align-items: flex-start;
   gap: 60px;
-  margin-left: 165px; /* align all sections under MessMate */
-  margin-bottom: 20px;
+  margin-left: 40px; /* ✅ Align columns under logo */
 }
 
+/* Each column */
 .footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-width: 160px;
 }
 
 .footer-column h2 {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 8px;
   color: #fff;
+  margin-bottom: 6px;
 }
 
+/* Remove default UL styles */
 .footer-column ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
+/* Links */
 .footer-link {
-  color: #bfbfbf;
+  color: #bdbdbd;
   text-decoration: none;
-  font-size: 14.5px;
-  display: block;
-  margin: 4px 0;
-  transition: color 0.3s ease;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
 }
 
 .footer-link:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
-/* 🌐 Social Links */
+/* ==============================
+   🌐 Social Links
+============================== */
 .footer-social {
   display: flex;
-  gap: 14px;
-  font-size: 20px;
-  margin-top: 6px;
+  align-items: center;
+  gap: 15px;
+  margin-top: 5px;
 }
 
 .footer-social a {
-  color: #bfbfbf;
-  transition: color 0.3s ease, transform 0.3s ease;
+  color: #bdbdbd;
+  font-size: 1.2rem;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .footer-social a:hover {
-  color: #f4a261;
+  color: #fff;
   transform: scale(1.1);
 }
 
-/* ⚙️ Copyright */
+/* ==============================
+   ⚙️ Copyright
+============================== */
 .footer-bottom {
   border-top: 1px solid #1a1a1a;
-  text-align: left;
+  text-align: center;
   color: #999;
-  font-size: 13.5px;
-  padding-top: 15px;
-  margin-left: 120px; /* same alignment as MessMate */
+  font-size: 13px;
+  padding-top: 18px;
+  margin-top: 25px;
 }
 
-/* 📱 Responsive Layout */
-@media (max-width: 1000px) {
+/* ============================================================
+   📱 Responsive Layout
+============================================================ */
+@media (max-width: 1024px) {
   .footer {
-    padding: 40px 50px;
+    padding: 50px 40px 30px;
+    gap: 30px;
   }
 
   .footer-header {
-    justify-content: center;
-    margin-left: 0;
-  }
-
-  .footer-title {
-    font-size: 28px;
+    margin-left: 30px;
   }
 
   .footer-grid {
-    flex-direction: column;
-    margin-left: 0;
+    margin-left: 30px;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 40px 25px 25px;
     gap: 25px;
   }
 
+  .footer-header {
+    margin-left: 20px;
+  }
+
+  .footer-grid {
+    margin-left: 20px;
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+
+  .footer-column {
+    min-width: 45%;
+  }
+
+  .footer-social {
+    gap: 12px;
+  }
+
+  .footer-social a {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 30px 20px;
+    gap: 25px;
+  }
+
+  .footer-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .footer-title {
+    font-size: 1.4rem;
+  }
+
+  .footer-header {
+    margin-left: 10px;
+  }
+
+  .footer-grid {
+    margin-left: 10px;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .footer-column {
+    min-width: 100%;
+  }
+
+  .footer-social {
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .footer-social a {
+    font-size: 1.2rem;
+  }
+
   .footer-bottom {
-    text-align: center;
-    margin-left: 0;
+    font-size: 12.5px;
   }
 }

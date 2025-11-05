@@ -28,7 +28,7 @@ import Swal from "sweetalert2";
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const UserDashboard = () => {
-  const { user, loading: authLoading } = useContext(AuthContext);
+  const { user, loading: authLoading, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -50,35 +50,33 @@ const UserDashboard = () => {
         if (authLoading || !user?._id) return;
         setLoading(true);
 
-        const token = localStorage.getItem("token");
-        if (!token) {
-          Swal.fire("Session expired", "Please log in again.", "warning");
-          navigate("/login", { replace: true });
-          return;
-        }
-
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        };
-
+        // API calls (token auto-attached by api.js)
         const [ordersRes, reviewsRes] = await Promise.allSettled([
-          api.get("/orders/my-orders", config),
-          api.get(`/reviews/user/${user._id}`, config),
+          api.get("/orders/my-orders"),
+          api.get(`/reviews/user/${user._id}`),
         ]);
 
-        const safeOrders = Array.isArray(ordersRes.value?.data)
-          ? ordersRes.value.data
-          : [];
-        const safeReviews = Array.isArray(reviewsRes.value?.data)
-          ? reviewsRes.value.data
-          : [];
+        // ✅ Handle both `{ success, orders }` and `[]` responses
+        const safeOrders =
+          Array.isArray(ordersRes.value?.data?.orders)
+            ? ordersRes.value.data.orders
+            : Array.isArray(ordersRes.value?.data)
+            ? ordersRes.value.data
+            : [];
+
+        const safeReviews =
+          Array.isArray(reviewsRes.value?.data?.reviews)
+            ? reviewsRes.value.data.reviews
+            : Array.isArray(reviewsRes.value?.data)
+            ? reviewsRes.value.data
+            : [];
+
+        console.log("🧾 Orders fetched:", safeOrders);
 
         setOrders(safeOrders);
         setReviews(safeReviews);
 
+        // 📊 Stats Calculation
         const totalOrders = safeOrders.length;
         const totalSpent = safeOrders.reduce(
           (sum, o) => sum + (Number(o.total_price) || 0),
@@ -102,17 +100,28 @@ const UserDashboard = () => {
     };
 
     fetchData();
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user]);
 
   // ============================================================
   // 🚪 Logout Handling
   // ============================================================
   const handleLogoutClick = () => setShowLogoutPopup(true);
   const handleCancelLogout = () => setShowLogoutPopup(false);
-  const handleConfirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
-    window.location.reload();
+
+  const handleConfirmLogout = async () => {
+    try {
+      await logout();
+      setShowLogoutPopup(false);
+      Swal.fire({
+        icon: "success",
+        title: "Logged out successfully",
+        showConfirmButton: false,
+        timer: 1200,
+      });
+    } catch (err) {
+      console.error("Logout failed:", err);
+      Swal.fire("Error", "Logout failed, please try again.", "error");
+    }
   };
 
   const handleGoHome = () => navigate("/");
@@ -150,10 +159,11 @@ const UserDashboard = () => {
         label: "Orders",
         data: Array(7)
           .fill(0)
-          .map((_, i) =>
-            orders.filter((o) => new Date(o.createdAt).getDay() === i).length
+          .map(
+            (_, i) =>
+              orders.filter((o) => new Date(o.createdAt).getDay() === i).length
           ),
-        backgroundColor: "rgba(59, 130, 246, 0.9)", // nice blue tone
+        backgroundColor: "rgba(59, 130, 246, 0.9)",
         borderRadius: 6,
         hoverBackgroundColor: "rgba(37, 99, 235, 1)",
         barThickness: 35,
@@ -163,7 +173,7 @@ const UserDashboard = () => {
 
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false, // allows height control via CSS
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -238,7 +248,7 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats Section */}
         <div className="stats">
           <div className="card">
             <BarChart3 className="icon orange" />
@@ -257,118 +267,18 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Weekly Chart */}
-<section className="chart-section">
-  <div className="chart-header">
-    <h3>Your Weekly Orders 📊</h3>
-    <p className="chart-subtitle">
-      Number of orders placed this week — visualized by day.
-    </p>
-  </div>
-
-  <div className="chart-container">
-    <Bar
-      data={{
-        labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-        datasets: [
-          {
-            label: "Orders",
-            data: Array(7)
-              .fill(0)
-              .map(
-                (_, i) =>
-                  orders.filter((o) => new Date(o.createdAt).getDay() === i)
-                    .length
-              ),
-            borderRadius: 8,
-            backgroundColor: function (context) {
-              const chart = context.chart;
-              const { ctx, chartArea } = chart;
-              if (!chartArea) return null;
-              const gradient = ctx.createLinearGradient(
-                0,
-                chartArea.bottom,
-                0,
-                chartArea.top
-              );
-              gradient.addColorStop(0, "#3b82f6"); // blue
-              gradient.addColorStop(1, "#06b6d4"); // teal
-              return gradient;
-            },
-            hoverBackgroundColor: "#2563eb",
-            barThickness: 40,
-          },
-        ],
-      }}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: "#1e293b",
-            titleColor: "#fff",
-            bodyColor: "#e2e8f0",
-            titleFont: { size: 14 },
-            bodyFont: { size: 13 },
-            callbacks: {
-              label: function (context) {
-                return `Orders: ${context.parsed.y}`;
-              },
-            },
-          },
-          title: {
-            display: false,
-          },
-          datalabels: {
-            display: true,
-            color: "#1e293b",
-            anchor: "end",
-            align: "top",
-            font: { size: 12, weight: "bold" },
-            formatter: (value) => (value > 0 ? value : ""),
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: "#475569", font: { size: 13, weight: "bold" } },
-          },
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1,
-              color: "#475569",
-              font: { size: 12 },
-            },
-            grid: { color: "rgba(226, 232, 240, 0.5)" },
-          },
-        },
-      }}
-      plugins={[
-        {
-          id: "datalabels",
-          afterDatasetsDraw: (chart) => {
-            const ctx = chart.ctx;
-            chart.data.datasets.forEach((dataset, i) => {
-              const meta = chart.getDatasetMeta(i);
-              meta.data.forEach((bar, index) => {
-                const value = dataset.data[index];
-                if (value > 0) {
-                  ctx.fillStyle = "#1e293b";
-                  ctx.font = "bold 12px sans-serif";
-                  ctx.textAlign = "center";
-                  ctx.fillText(value, bar.x, bar.y - 8);
-                }
-              });
-            });
-          },
-        },
-      ]}
-    />
-  </div>
-</section>
-
+        {/* Weekly Orders Chart */}
+        <section className="chart-section">
+          <div className="chart-header">
+            <h3>Your Weekly Orders 📊</h3>
+            <p className="chart-subtitle">
+              Number of orders placed this week — visualized by day.
+            </p>
+          </div>
+          <div className="chart-container">
+            <Bar data={weeklyData} options={chartOptions} />
+          </div>
+        </section>
 
         {/* Orders Table */}
         <section id="orders" className="recent-orders">
@@ -434,6 +344,7 @@ const UserDashboard = () => {
         </section>
       </main>
 
+      {/* Logout Popup */}
       {showLogoutPopup && (
         <LogoutPopup
           onConfirm={handleConfirmLogout}

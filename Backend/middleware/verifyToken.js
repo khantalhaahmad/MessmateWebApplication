@@ -12,34 +12,42 @@ export const verifyToken = async (req, res, next) => {
       ? authHeader.split(" ")[1]
       : null;
 
-    if (!token) {
+    if (!token)
       return res.status(401).json({
         success: false,
         message: "Unauthorized: Token missing",
       });
-    }
 
     let decoded = null;
     let dbUser = null;
 
     /* ============================================================
-       🟢 1️⃣ Try verifying as Firebase token
+       🟢 1️⃣ Try verifying Firebase token
        ============================================================ */
     try {
       decoded = await admin.auth().verifyIdToken(token);
-      if (decoded && decoded.uid) {
-        // Find corresponding user in MongoDB
-        dbUser = await User.findOne({ firebaseUid: decoded.uid });
 
-        // Optional: Auto-create if not present
+      if (decoded?.uid) {
+        dbUser = await User.findOne({
+          $or: [{ firebaseUid: decoded.uid }, { email: decoded.email }],
+        });
+
+        // Link existing user by email if found
+        if (dbUser && !dbUser.firebaseUid) {
+          dbUser.firebaseUid = decoded.uid;
+          await dbUser.save();
+          console.log("🔗 Linked firebaseUid to existing user:", dbUser._id);
+        }
+
+        // Create new user if not found
         if (!dbUser) {
-          console.warn("⚠️ Firebase user not found in DB → auto-creating...");
           dbUser = await User.create({
+            firebaseUid: decoded.uid,
             name: decoded.name || decoded.email || "Firebase User",
             email: decoded.email || "no-email@firebase.com",
-            firebaseUid: decoded.uid,
             role: "student",
           });
+          console.log("🆕 Created new Firebase user:", dbUser._id);
         }
 
         req.user = {
@@ -50,51 +58,46 @@ export const verifyToken = async (req, res, next) => {
           email: dbUser.email,
           source: "firebase",
         };
-
         return next();
       }
     } catch (firebaseErr) {
-      // Not a Firebase token, continue to JWT check
-      console.log("⚠️ Not a Firebase token, trying JWT decode...");
+      console.log("⚠️ Not a Firebase token, trying JWT...");
     }
 
     /* ============================================================
-       🟠 2️⃣ Fallback to standard JWT verification
+       🟠 2️⃣ Try verifying backend JWT token
        ============================================================ */
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+      dbUser = await User.findById(decoded.id);
 
-      if (!decoded?.role) {
-        return res.status(403).json({
-          success: false,
-          message: "Forbidden: Role missing in token",
+      if (!dbUser) {
+        dbUser = await User.create({
+          _id: decoded.id,
+          name: decoded.name || "JWT User",
+          email: decoded.email || "unknown@user.com",
+          role: decoded.role || "student",
         });
+        console.log("🆕 Created missing JWT user:", dbUser._id);
       }
 
       req.user = {
-        id: decoded.id || decoded._id,
-        role: decoded.role,
-        name: decoded.name || "User",
-        email: decoded.email || "unknown",
+        id: dbUser._id.toString(),
+        role: dbUser.role,
+        name: dbUser.name,
+        email: dbUser.email,
         source: "jwt",
       };
-
       return next();
     } catch (jwtErr) {
       console.error("💥 JWT verify error:", jwtErr.message);
-      if (jwtErr.name === "TokenExpiredError") {
-        return res.status(401).json({
-          success: false,
-          message: "Session expired. Please log in again.",
-        });
-      }
-      if (jwtErr.name === "JsonWebTokenError") {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid token. Authentication failed.",
-        });
-      }
-      throw jwtErr;
+      return res.status(401).json({
+        success: false,
+        message:
+          jwtErr.name === "TokenExpiredError"
+            ? "Session expired. Please log in again."
+            : "Invalid token. Authentication failed.",
+      });
     }
   } catch (error) {
     console.error("💥 verifyToken general error:", error.message);

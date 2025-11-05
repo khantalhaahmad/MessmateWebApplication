@@ -1,4 +1,3 @@
-// ✅ src/pages/Checkout.jsx — FINAL PRODUCTION VERSION
 import React, { useContext, useState } from "react";
 import "../styles/Checkout.css";
 import { useCart } from "../Context/CartContext";
@@ -20,23 +19,25 @@ const Checkout = () => {
       if (item.image.startsWith("http")) return item.image;
       if (item.image.startsWith("/assets/")) return item.image;
       if (item.image.startsWith("assets/")) return `/${item.image}`;
-      if (item.image.startsWith("./assets/")) return item.image.replace("./", "/");
+      if (item.image.startsWith("./assets/"))
+        return item.image.replace("./", "/");
       return `/assets/${item.image}`;
     }
-    const formatted = item.name.toLowerCase().replace(/\s+/g, "").replace(/[()]/g, "");
+    const formatted = item.name
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/[()]/g, "");
     return `/assets/${formatted}.png`;
   };
 
   /* ------------------------------------------------------------
-     ✅ Helper: Create Order on Backend
+     ✅ Helper: Create Order on Backend (Now uses Firebase token automatically)
   ------------------------------------------------------------ */
   const createOrder = async (paymentMethod) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return toast.error("⚠️ Please log in first.");
-      if (cartItems.length === 0) return toast.error("🛒 Your cart is empty.");
+      if (cartItems.length === 0)
+        return toast.error("🛒 Your cart is empty. Add items first!");
 
-      // 🧠 Smart mess info extraction
       const validMess = cartItems.find(
         (item) => item.mess_id && item.mess_id !== "N/A"
       );
@@ -50,20 +51,22 @@ const Checkout = () => {
         quantity: item.quantity,
       }));
 
-      console.log("📦 Sending order:", { mess_id, mess_name, paymentMethod, total });
+      console.log("📦 Sending order:", {
+        mess_id,
+        mess_name,
+        paymentMethod,
+        total,
+      });
 
-      await api.post(
-        "/orders",
-        {
-          mess_id,
-          mess_name,
-          items,
-          total_price: total,
-          paymentMethod,
-          status: paymentMethod === "COD" ? "Pending (COD)" : "confirmed",
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // No need for manual token — Axios interceptor adds Firebase ID token
+      await api.post("/orders", {
+        mess_id,
+        mess_name,
+        items,
+        total_price: total,
+        paymentMethod,
+        status: paymentMethod === "COD" ? "Pending (COD)" : "confirmed",
+      });
 
       Swal.fire({
         title: "🍽️ Order Placed Successfully! 🎉",
@@ -98,18 +101,20 @@ const Checkout = () => {
   };
 
   /* ------------------------------------------------------------
-     ✅ Online Payment + Order
+     ✅ Online Payment + Order (Firebase Auth included automatically)
   ------------------------------------------------------------ */
   const handlePaymentAndOrder = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return toast.error("⚠️ Please log in first.");
-      if (cartItems.length === 0) return toast.error("🛒 Your cart is empty.");
+      if (cartItems.length === 0)
+        return toast.error("🛒 Your cart is empty. Add items first!");
 
       const total = calculateTotal();
       setLoading(true);
 
-      const { data: order } = await api.post("/payment/create-order", { amount: total });
+      const { data: order } = await api.post("/payment/create-order", {
+        amount: total,
+      });
+
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -144,7 +149,7 @@ const Checkout = () => {
   };
 
   /* ------------------------------------------------------------
-     ✅ Cash on Delivery
+     ✅ Cash on Delivery (COD)
   ------------------------------------------------------------ */
   const handleCODOrder = async () => {
     await createOrder("COD");
@@ -156,7 +161,11 @@ const Checkout = () => {
   if (cartItems.length === 0) {
     return (
       <div className="checkout-empty">
-        <img src="/assets/empty-cart.png" alt="Empty cart" className="empty-cart-img" />
+        <img
+          src="/assets/empty-cart.png"
+          alt="Empty cart"
+          className="empty-cart-img"
+        />
         <h2>Your cart is empty 🛒</h2>
         <p>Add something delicious to your cart!</p>
       </div>
@@ -173,14 +182,25 @@ const Checkout = () => {
           <div className="cart-section">
             {cartItems.map((item, index) => (
               <div key={index} className="cart-card">
-                <img src={getImagePath(item)} alt={item.name} className="cart-img" />
+                <img
+                  src={getImagePath(item)}
+                  alt={item.name}
+                  className="cart-img"
+                />
                 <div className="cart-info">
                   <h4>{item.name}</h4>
                   <p>Qty: {item.quantity}</p>
                   <p>₹{item.price} each</p>
-                  <strong>Total: ₹{(item.price * item.quantity).toFixed(2)}</strong>
+                  <strong>
+                    Total: ₹{(item.price * item.quantity).toFixed(2)}
+                  </strong>
                 </div>
-                <button className="remove-item" onClick={() => removeFromCart(item)}>🗑</button>
+                <button
+                  className="remove-item"
+                  onClick={() => removeFromCart(item)}
+                >
+                  🗑
+                </button>
               </div>
             ))}
           </div>
@@ -189,17 +209,31 @@ const Checkout = () => {
           <div className="summary-section">
             <div className="delivery-box">
               <h3>Delivery Details 🚚</h3>
-              <p><strong>{user?.name || "Customer"}</strong></p>
+              <p>
+                <strong>{user?.name || "Customer"}</strong>
+              </p>
               <p>{user?.email || "user@example.com"}</p>
               <p>{user?.phone || "9999999999"}</p>
-              <p className="address-line">📍 {user?.address || "Your saved address will appear here"}</p>
+              <p className="address-line">
+                📍{" "}
+                {user?.address || "Your saved address will appear here"}
+              </p>
             </div>
 
             <div className="bill-box">
               <h3>Bill Summary</h3>
-              <div className="summary-row"><span>Subtotal</span><span>₹{calculateTotal().toFixed(2)}</span></div>
-              <div className="summary-row"><span>GST (5%)</span><span>₹{(calculateTotal() * 0.05).toFixed(2)}</span></div>
-              <div className="summary-row"><span>Delivery Fee</span><span>₹20.00</span></div>
+              <div className="summary-row">
+                <span>Subtotal</span>
+                <span>₹{calculateTotal().toFixed(2)}</span>
+              </div>
+              <div className="summary-row">
+                <span>GST (5%)</span>
+                <span>₹{(calculateTotal() * 0.05).toFixed(2)}</span>
+              </div>
+              <div className="summary-row">
+                <span>Delivery Fee</span>
+                <span>₹20.00</span>
+              </div>
               <hr />
               <div className="summary-row total">
                 <span>Grand Total</span>
@@ -220,7 +254,9 @@ const Checkout = () => {
               </button>
             </div>
 
-            <p className="secure-text">🔒 100% Secure Payments powered by Razorpay</p>
+            <p className="secure-text">
+              🔒 100% Secure Payments powered by Razorpay
+            </p>
           </div>
         </div>
       </div>

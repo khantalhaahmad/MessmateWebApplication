@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import "../styles/OwnerDashboard.css";
 import LogoutPopup from "../components/LogoutPopup";
 import {
@@ -25,19 +25,23 @@ import api from "../services/api";
 import { AuthContext } from "../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { io } from "socket.io-client";
+import { getToken, onMessage } from "firebase/messaging";
+import { messaging } from "../firebase";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const OwnerDashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [menu, setMenu] = useState([]);
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [newOrderSound] = useState(new Audio("/assets/notification.mp3"));
+  const socketRef = useRef(null);
 
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -57,7 +61,7 @@ const OwnerDashboard = () => {
           api.get(`/messes?owner_id=${user._id}`, config),
           api.get(`/orders/owner/${user._id}`, config),
           api.get(`/reviews/owner/${user._id}`, config),
-          api.get(`/owner/${user._id}/stats`, config), // ✅ FIXED endpoint
+          api.get(`/owner/${user._id}/stats`, config),
         ]);
 
         const safe = (res) => res.value?.data?.data || res.value?.data || [];
@@ -69,7 +73,6 @@ const OwnerDashboard = () => {
         setOrders(safe(orderRes).orders || safe(orderRes) || []);
         setReviews(safe(reviewRes).reviews || safe(reviewRes) || []);
         setStats(statRes.value?.data || {});
-
         console.log("✅ Owner dashboard loaded successfully");
       } catch (err) {
         console.error("❌ Owner dashboard fetch failed:", err);
@@ -80,6 +83,68 @@ const OwnerDashboard = () => {
     };
 
     fetchData();
+  }, [user]);
+
+  /* ============================================================
+     🔔 SOCKET.IO + FCM SETUP (Real-time Orders)
+  ============================================================ */
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Initialize socket
+    socketRef.current = io(import.meta.env.VITE_API_URL_PROD || "https://messmate-backend.onrender.com", {
+      transports: ["websocket"],
+    });
+
+    socketRef.current.emit("join_room", `owner_${user._id}`);
+    console.log("✅ Joined Socket Room:", `owner_${user._id}`);
+
+    // Listen for new orders
+    socketRef.current.on("new_order", (order) => {
+      console.log("📦 New Order Received:", order);
+      newOrderSound.play();
+      Swal.fire({
+        title: "🍱 New Order Received!",
+        text: `${order.items.length} items worth ₹${order.total_price}`,
+        icon: "info",
+        confirmButtonColor: "#ff6b00",
+      });
+      setOrders((prev) => [order, ...prev]);
+    });
+
+    // FCM Setup
+    const registerFCM = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          const fcmToken = await getToken(messaging, {
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID,
+          });
+          if (fcmToken) {
+            await api.post(
+              "/users/save-fcm-token",
+              { token: fcmToken },
+              config
+            );
+            console.log("📱 FCM token saved successfully!");
+          }
+        }
+      } catch (err) {
+        console.warn("⚠️ FCM registration failed:", err.message);
+      }
+    };
+
+    registerFCM();
+
+    onMessage(messaging, (payload) => {
+      console.log("🔔 FCM Message:", payload);
+      newOrderSound.play();
+      Swal.fire("🍽️ Notification", payload.notification.body, "info");
+    });
+
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
   }, [user]);
 
   /* ============================================================
@@ -98,15 +163,11 @@ const OwnerDashboard = () => {
      📊 Chart Data
   ============================================================ */
   const weeklyData = {
-    labels: stats.weeklyLabels?.length
-      ? stats.weeklyLabels
-      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    labels: stats.weeklyLabels || ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     datasets: [
       {
         label: "Orders",
-        data: Array.isArray(stats.weeklyOrders)
-          ? stats.weeklyOrders
-          : [0, 0, 0, 0, 0, 0, 0],
+        data: stats.weeklyOrders || [0, 0, 0, 0, 0, 0, 0],
         backgroundColor: "#ff5722",
         borderRadius: 6,
       },
@@ -114,25 +175,17 @@ const OwnerDashboard = () => {
   };
 
   const revenueData = {
-  labels: stats?.monthlyLabels?.length
-    ? stats.monthlyLabels
-    : ["Week 1", "Week 2", "Week 3", "Week 4"],
-  datasets: [
-    {
-      label: "Revenue (₹)",
-      data:
-        Array.isArray(stats?.monthlyRevenue) &&
-        stats.monthlyRevenue.length > 0
-          ? stats.monthlyRevenue.map((v) => Number(v) || 0)
-          : [0, 0, 0, 0],
-      backgroundColor: "#4caf50",
-      borderRadius: 8,
-      barThickness: 40,
-    },
-  ],
-};
-
-
+    labels: stats.monthlyLabels || ["Week 1", "Week 2", "Week 3", "Week 4"],
+    datasets: [
+      {
+        label: "Revenue (₹)",
+        data: stats.monthlyRevenue || [0, 0, 0, 0],
+        backgroundColor: "#4caf50",
+        borderRadius: 8,
+        barThickness: 40,
+      },
+    ],
+  };
 
   if (loading) return <p className="loading-text">Loading Owner Dashboard...</p>;
 
@@ -144,9 +197,9 @@ const OwnerDashboard = () => {
       {/* Sidebar */}
       <aside className="sidebar">
         <h1 className="logo">
-  <img src="/assets/messmate.png" alt="MessMate Logo" className="logo-img" />
-  MessMate
-</h1>
+          <img src="/assets/messmate.png" alt="MessMate Logo" className="logo-img" />
+          MessMate
+        </h1>
 
         <nav className="menu">
           <a href="#overview" className="menu-item active">
@@ -195,9 +248,7 @@ const OwnerDashboard = () => {
           <div className="card">
             <IndianRupee className="icon green" />
             <h3>Total Revenue</h3>
-            <p>
-              ₹{orders.reduce((sum, o) => sum + (o.total_price || 0), 0)}
-            </p>
+            <p>₹{orders.reduce((sum, o) => sum + (o.total_price || 0), 0)}</p>
           </div>
           <div className="card">
             <Users className="icon blue" />
@@ -220,26 +271,20 @@ const OwnerDashboard = () => {
               options={{
                 responsive: true,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                scales: { y: { beginAtZero: true } },
               }}
             />
           </div>
           <div className="chart-box">
             <h3>Monthly Revenue 💰</h3>
             <Bar
-  data={revenueData}
-  options={{
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 50 }, // smoother Y-axis
-      },
-    },
-  }}
-/>
-
+              data={revenueData}
+              options={{
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } },
+              }}
+            />
           </div>
         </section>
 

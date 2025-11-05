@@ -113,11 +113,12 @@ const MessMenu = () => {
           filtered.map((item, idx) => (
             <div key={idx} className="menu-card shadow-md hover-scale">
               <img
-                src={`/assets/${item.image || "default-food.png"}`}
-                alt={item.name}
-                className="menu-img"
-                onError={(e) => (e.target.src = "/assets/default-food.png")}
-              />
+  src={item.image || "/assets/default-food.png"}
+  alt={item.name}
+  className="menu-img"
+  onError={(e) => (e.target.src = "/assets/default-food.png")}
+/>
+
               <div className="menu-details">
                 <h3>{item.name}</h3>
                 <p className="menu-desc">{item.description}</p>

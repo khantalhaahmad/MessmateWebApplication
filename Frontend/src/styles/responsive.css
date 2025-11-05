@@ -1,0 +1,301 @@
+/* ============================================================
+   Base Reset (once, globally)
+============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  height: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Poppins", "Inter", Arial, sans-serif;
+  background: #f9faff;
+}
+
+/* ✅ Lenis Smooth Scroll Compatibility */
+html, body {
+  overscroll-behavior: none;
+  scroll-behavior: auto !important; /* Let Lenis control smoothness */
+}
+body.lenis, html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }
+
+/* Generic helpers */
+img { max-width: 100%; height: auto; display: block; }
+.app-main { width: 100%; overflow-x: hidden; }
+.container { width: 90%; max-width: 1200px; margin: 0 auto; }
+
+/* ============================================================
+   HERO (messmate-hero-*)
+============================================================ */
+@media (max-width: 600px) {
+  .messmate-hero-title { font-size: 2.3rem; }
+  .messmate-hero-subtitle { font-size: 1.1rem; }
+  .messmate-hero-text { font-size: 0.92rem; }
+  .messmate-scroll-down { bottom: 14px; }
+}
+
+/* ============================================================
+   HOME (Available Messes + Search)
+============================================================ */
+@media (max-width: 768px) {
+  .home-container { padding: 0 12px; }
+
+  .mess-section { padding: 40px 12px; text-align: center; }
+  .section-title { font-size: 1.7rem; }
+
+  .mess-header {
+    display: flex; flex-direction: column;
+    align-items: stretch; gap: 12px; margin-bottom: 18px;
+  }
+
+  .mess-search-container {
+    width: 100%; display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .mess-search-input,
+  .mess-search-button,
+  .mess-location-select { width: 100%; }
+
+  .mess-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ============================================================
+   MESS CARD
+============================================================ */
+@media (max-width: 768px) {
+  .messcard { width: 95%; margin: 0 auto; }
+  .messcard-title { font-size: 1rem; }
+  .messcard-meta { font-size: 0.85rem; }
+}
+
+/* ============================================================
+   AUTH (AuthPage/Login/Signup)
+============================================================ */
+@media (max-width: 850px) {
+  .auth-container {
+    width: 100%; min-height: 100vh; border-radius: 0; box-shadow: none;
+  }
+  .overlay-container { display: none !important; }
+  .form-container { position: relative; width: 100% !important; left: 0 !important; }
+}
+@media (max-width: 600px) {
+  form { padding: 0 22px !important; }
+  input, select { padding: 10px 12px; font-size: 0.95rem; }
+  .auth-btn { padding: 10px 28px; }
+}
+
+/* ============================================================
+   FOOTER — Clean, Zomato-Style Responsive Layout
+============================================================ */
+.footer {
+  background-color: #0d0d0d;
+  color: #fff;
+  padding: 60px 80px 40px;
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ==============================
+   Top Section (Logo + Columns)
+============================== */
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 60px;
+}
+
+/* ✅ MessMate Logo Left */
+.footer-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 180px;
+  text-align: left;
+}
+
+.footer-header img {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+}
+
+.footer-header h3 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ==============================
+   Columns Section (Links)
+============================== */
+.footer-grid {
+  display: flex;
+  flex: 4;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 60px;
+}
+
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ✅ Headings */
+.footer-column h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+/* ✅ Links */
+.footer-column a {
+  color: #bdbdbd;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.footer-column a:hover {
+  color: #fff;
+}
+
+/* ✅ Remove bullet points globally */
+.footer ul,
+.footer li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ==============================
+   Bottom Copyright
+============================== */
+.footer-bottom {
+  border-top: 1px solid #1a1a1a;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  padding-top: 18px;
+  margin-top: 40px;
+}
+
+/* ============================================================
+   📱 Responsive Layout
+============================================================ */
+@media (max-width: 1024px) {
+  .footer {
+    padding: 40px 40px 30px;
+    gap: 30px;
+  }
+  .footer-grid {
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 30px;
+  }
+
+  .footer-header {
+    justify-content: flex-start;
+  }
+
+  .footer-grid {
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+
+  .footer-column {
+    min-width: 45%;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 30px 20px;
+    gap: 25px;
+  }
+  .footer-header img {
+    width: 35px;
+    height: 35px;
+  }
+  .footer-header h3 {
+    font-size: 1.3rem;
+  }
+  .footer-grid {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .footer-column {
+    min-width: 100%;
+  }
+  .footer-bottom {
+    font-size: 12.5px;
+  }
+}
+
+/* ============================================================
+   CHECKOUT
+============================================================ */
+@media (max-width: 768px) {
+  .checkout-container { padding: 20px; }
+  .checkout-heading { font-size: 1.6rem; }
+
+  .checkout-content { display: flex; flex-direction: column; gap: 18px; }
+  .summary-section { margin-top: 6px; }
+
+  .cart-card { flex-direction: column; align-items: stretch; }
+  .cart-img { width: 100%; height: 150px; object-fit: cover; }
+
+  .payment-buttons .btn { font-size: 0.95rem; padding: 10px; }
+}
+
+/* ============================================================
+   DASHBOARD (UserDashboard)
+============================================================ */
+@media (max-width: 900px) {
+  .dashboard { display: flex; flex-direction: column; }
+  .sidebar {
+    position: relative; width: 100%; height: auto;
+    flex-direction: row; justify-content: space-between; padding: 10px 16px;
+  }
+  .main { margin-left: 0 !important; padding: 20px; }
+  .stats { flex-direction: column; }
+  .chart-container { height: 220px; }
+  table { font-size: 12px; }
+}
+
+/* ============================================================
+   TYPOGRAPHY quick scale (tiny phones)
+============================================================ */
+@media (max-width: 480px) {
+  h1, h2 { font-size: 1.35rem; }
+  h3 { font-size: 1.1rem; }
+  p, li, button, input { font-size: 0.95rem; }
+}
+
+/* ============================================================
+   Loader (kept from your App.jsx inline styles)
+============================================================ */
+.loading-screen { gap: 15px; }
+.spinner { width: 48px; height: 48px; border: 5px solid #ddd; border-top: 5px solid #e23744; border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg);} }

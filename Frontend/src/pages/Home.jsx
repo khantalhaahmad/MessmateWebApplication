@@ -14,27 +14,22 @@ const Home = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFloatingButtons, setShowFloatingButtons] = useState(true);
-
   const navigate = useNavigate();
   const availableSectionRef = useRef(null);
 
-  // ✅ Fetch all messes
+  // ✅ Fetch messes
   useEffect(() => {
     const fetchMesses = async () => {
       try {
         const res = await api.get("/messes");
-const messes =
-  Array.isArray(res.data) ? res.data :
-  Array.isArray(res.data?.data) ? res.data.data :
-  Array.isArray(res.data?.messes) ? res.data.messes : [];
-
+        const messes =
+          Array.isArray(res.data) ? res.data :
+          Array.isArray(res.data?.data) ? res.data.data :
+          Array.isArray(res.data?.messes) ? res.data.messes : [];
         setMessData(messes);
         setFilteredData(messes);
       } catch (err) {
-        console.error(
-          "❌ Error fetching messes:",
-          err.response?.data || err.message
-        );
+        console.error("❌ Error fetching messes:", err.response?.data || err.message);
       } finally {
         setLoading(false);
       }
@@ -42,24 +37,16 @@ const messes =
     fetchMesses();
   }, []);
 
-  // ✅ Hide floating buttons on scroll to Available Mess section
+  // ✅ Control Floating Buttons visibility
   useEffect(() => {
     const handleScroll = () => {
       if (!availableSectionRef.current) return;
-
       const sectionTop = availableSectionRef.current.offsetTop;
       const scrollPosition = window.scrollY + window.innerHeight / 2;
-
-      if (scrollPosition >= sectionTop) {
-        setShowFloatingButtons(false);
-      } else {
-        setShowFloatingButtons(true);
-      }
+      setShowFloatingButtons(scrollPosition < sectionTop);
     };
-
     window.addEventListener("scroll", handleScroll);
     handleScroll();
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -76,18 +63,14 @@ const messes =
 
   const getImagePath = (name) => `/assets/${imageMap[name] || imageMap.default}`;
 
-  // 🔗 View Mess
   const handleViewMess = (mess) => {
-    if (!mess?.mess_id) return;
-    navigate(`/messes/id/${mess.mess_id}`);
+    if (mess?.mess_id) navigate(`/messes/id/${mess.mess_id}`);
   };
 
   return (
     <div className="home-container">
       <Hero />
       <BetterFood />
-
-      {/* 🟢 Floating Buttons */}
       {showFloatingButtons && <FloatingButtons />}
 
       {/* 🏠 Available Mess Section */}
@@ -117,7 +100,6 @@ const messes =
         )}
       </section>
 
-      {/* ✅ Removed <Footer /> here */}
       <Recommendations />
     </div>
   );

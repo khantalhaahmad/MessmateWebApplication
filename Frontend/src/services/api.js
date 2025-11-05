@@ -1,5 +1,5 @@
-// src/services/api.js
 import axios from "axios";
+import { getFirebaseAuth } from "../firebase";
 
 /* ============================================================
    ⚙️ BASE URL CONFIGURATION (Auto Environment Switch)
@@ -10,29 +10,39 @@ const isLocal =
     window.location.hostname === "127.0.0.1");
 
 const baseURL = isLocal
-  ? import.meta.env.VITE_API_URL || "http://localhost:4000" // ✅ removed `/api` from here
-  : import.meta.env.VITE_API_URL_PROD ||
-    "https://messmate-backend.onrender.com";
+  ? import.meta.env.VITE_API_URL || "http://localhost:4000"
+  : import.meta.env.VITE_API_URL_PROD || "https://messmate-backend.onrender.com";
 
 /* ============================================================
    🧩 AXIOS INSTANCE
    ============================================================ */
 const api = axios.create({
-  baseURL: `${baseURL}/api`, // ✅ append `/api` only once
+  baseURL: `${baseURL}/api`,
   withCredentials: true,
   timeout: 60000,
 });
 
 /* ============================================================
-   🔐 AUTH TOKEN INTERCEPTOR
+   🔐 AUTH TOKEN INTERCEPTOR (Firebase-aware)
    ============================================================ */
-api.interceptors.request.use((config) => {
-  const adminToken = localStorage.getItem("adminToken");
-  const userToken = localStorage.getItem("token");
-  const token = adminToken || userToken;
+api.interceptors.request.use(async (config) => {
+  try {
+    const auth = getFirebaseAuth();
+    const currentUser = auth.currentUser;
+    let token = null;
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    // 🔹 Prefer Firebase ID token
+    if (currentUser) {
+      token = await currentUser.getIdToken(true);
+    } else {
+      // 🔹 Fallback for admin or backend JWT users
+      token =
+        localStorage.getItem("adminToken") || localStorage.getItem("token");
+    }
+
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  } catch (err) {
+    console.warn("⚠️ Failed to attach Firebase token:", err.message);
   }
 
   return config;
@@ -62,9 +72,6 @@ if (import.meta.env.DEV) {
   console.log("✅ API Base URL →", `${baseURL}/api`);
 }
 
-/* ============================================================
-   📦 UPLOAD CONFIG HELPER
-   ============================================================ */
 export const buildUploadConfig = (onUploadProgress, signal) => ({
   headers: {},
   onUploadProgress,

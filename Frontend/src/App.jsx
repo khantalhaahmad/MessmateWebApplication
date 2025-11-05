@@ -1,6 +1,13 @@
-// ✅ src/App.jsx — Clean, Optimized & FloatingButtons fixed for only /messes/:id
-import React, { Suspense, lazy } from "react";
-import { Routes, Route, Navigate, useLocation, matchPath } from "react-router-dom";
+// ✅ src/App.jsx — Updated with Global Lenis Smooth Scroll + Responsive Base
+import React, { Suspense, lazy, useEffect } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  matchPath,
+} from "react-router-dom";
+import Lenis from "@studio-freight/lenis";
 import { AuthProvider } from "./Context/AuthContext";
 import { CartProvider } from "./Context/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -8,10 +15,12 @@ import FloatingButtons from "./components/FloatingButtons";
 import Footer from "./components/Footer";
 import ErrorBoundary from "./components/ErrorBoundary";
 
+// 🧩 Global responsive helpers
+import "./styles/responsive.css";
+
 // 💤 Lazy-Loaded Pages (Main)
 const Home = lazy(() => import("./pages/Home"));
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
 const MessMenu = lazy(() => import("./pages/MessMenu"));
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -35,48 +44,68 @@ const HelpSupport = lazy(() => import("./pages/HelpSupport"));
 const ReportFraud = lazy(() => import("./pages/ReportFraud"));
 const Blog = lazy(() => import("./pages/Blog"));
 
-// 🌀 Custom Loader
+// 🌀 Loader for Suspense
 const Loader = () => (
   <div className="loading-screen">
-    <div className="spinner"></div>
+    <div className="spinner" />
     <p>Loading, please wait...</p>
+    <style>{`
+      .loading-screen {
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        height: 100vh; background: linear-gradient(135deg, #f1f4ff, #fafaff);
+        color: #2a2a2a; font-family: 'Poppins', sans-serif;
+      }
+      .spinner {
+        border: 5px solid #e0e0e0; border-top: 5px solid #6c63ff;
+        border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+    `}</style>
   </div>
 );
 
 function App() {
   const location = useLocation();
 
-  // 🚫 Routes where footer should be hidden
-  const noFooterRoutes = [
-    "/login",
-    "/signup",
-    "/dashboard",
-    "/admin",
-    "/checkout",
-    "/messes",
-  ];
+  // ✅ Initialize Lenis for smooth scroll
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.3,
+      smooth: true,
+      direction: "vertical",
+      gestureDirection: "vertical",
+      smoothTouch: false,
+    });
 
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    return () => lenis.destroy();
+  }, []);
+
+  // 🚫 Routes where footer should be hidden
+  const noFooterRoutes = ["/auth", "/dashboard", "/admin", "/checkout", "/messes"];
   const shouldShowFooter = !noFooterRoutes.some((path) =>
     location.pathname.startsWith(path)
   );
-
-  // ✅ Floating Cart should appear ONLY on /messes/:mess_id routes
   const isMessMenuPage = matchPath("/messes/:mess_id", location.pathname);
 
   return (
     <AuthProvider>
       <CartProvider>
-        {/* ✅ FloatingButtons visible ONLY on /messes/:mess_id */}
         {isMessMenuPage && <FloatingButtons />}
 
-        <main>
+        <main className="app-main">
           <ErrorBoundary>
             <Suspense fallback={<Loader />}>
               <Routes>
-                {/* 🌐 Public Routes */}
+                {/* 🌍 Public Routes */}
                 <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                <Route path="/auth" element={<AuthPage />} />
                 <Route path="/messes/:mess_id" element={<MessMenu />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/delivery-partners" element={<DeliveryPartners />} />
@@ -84,7 +113,7 @@ function App() {
                 <Route path="/partner-with-us" element={<PartnerLanding />} />
                 <Route path="/addmess" element={<AddMessForm />} />
 
-                {/* 👨‍🎓 User / Owner Dashboard */}
+                {/* 👨‍🎓 Dashboard (Protected) */}
                 <Route
                   path="/dashboard"
                   element={
@@ -94,7 +123,7 @@ function App() {
                   }
                 />
 
-                {/* 🧑‍💼 Admin Routes */}
+                {/* 🧑‍💼 Admin */}
                 <Route
                   path="/admin/dashboard"
                   element={
@@ -136,7 +165,7 @@ function App() {
                   }
                 />
 
-                {/* 📄 Info Pages */}
+                {/* 📘 Info Pages */}
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/terms" element={<TermsOfService />} />
@@ -144,14 +173,14 @@ function App() {
                 <Route path="/report-fraud" element={<ReportFraud />} />
                 <Route path="/blog" element={<Blog />} />
 
-                {/* 🚫 Catch-All Redirect */}
+                {/* 🚫 Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
         </main>
 
-        {/* ✅ Footer hidden on menu, checkout, admin, dashboard, login/signup */}
+        {/* 🦶 Footer visible only on main pages */}
         {shouldShowFooter && <Footer />}
       </CartProvider>
     </AuthProvider>
