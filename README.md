@@ -84,7 +84,7 @@ Sensitive configuration handled securely
 
 ### 👨‍💻 Author
 
-Talha Ahmad Khan
+### Talha Ahmad Khan
 Aspiring Software Engineer | Android & Full-Stack Developer
 
 📍 Bhubaneswar, Odisha
