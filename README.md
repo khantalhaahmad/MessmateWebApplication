@@ -23,13 +23,13 @@ https://messmate-web-application.vercel.app
 
 ### 🛠️ Tech Stack.
 
-Frontend.
+### Frontend.
 
 1)HTML, CSS, JavaScript
 2)Modern UI components
 3)Responsive design
 
-Backend.
+### Backend.
 
 1)Node.js
 2)Express.js
