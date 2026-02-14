@@ -11,7 +11,7 @@ This project is part of the MessMate ecosystem, which also includes separate And
 https://messmate-web-application.vercel.app
 
 
-✨ Features.
+ ### ✨ Features.
 1)🔐 User authentication & secure session handling
 2)🍱 Browse daily & weekly mess menus
 3)🛒 Place and manage food orders
