@@ -5,7 +5,7 @@ MessMate Web Application is a full-stack food ordering and mess management platf
 
 This project is part of the MessMate ecosystem, which also includes separate Android applications for vendors and customers—similar in concept to platforms like Zomato / Swiggy, but optimized for mess-based food services.
 
-🚀 Live Demo.
+### 🚀 Live Demo.
 
 🔗 Web App:
 https://messmate-web-application.vercel.app
@@ -21,7 +21,7 @@ https://messmate-web-application.vercel.app
 7)⚡ Fast and optimized frontend performance
 
 
-🛠️ Tech Stack.
+### 🛠️ Tech Stack.
 
 Frontend.
 
@@ -40,7 +40,7 @@ Database :- MongoDB
 Deployment:- Vercel (Frontend Hosting)
 
 
-🧱 Project Structure
+### 🧱 Project Structure
 MessmateWebApplication
 │
 ├── Frontend/        # Client-side UI
@@ -48,7 +48,7 @@ MessmateWebApplication
 ├── README.md
 
 
-🔄 System Architecture
+### 🔄 System Architecture
 
 1)Frontend communicates with backend using REST APIs
 
@@ -67,7 +67,7 @@ Menu data
 4)Real-time updates ensure smooth user experience
 
 
-🔐 Security
+### 🔐 Security
 
 Token-based authentication
 Protected API routes
@@ -75,14 +75,14 @@ Sensitive configuration handled securely
 
 
 
-📌 Related Projects (MessMate Ecosystem)
+### 📌 Related Projects (MessMate Ecosystem)
 
 📱 MessMate Android App (User)
 🏪 MessMate Vendor Android App
 🌐 MessMate Web Application (this repository)
 
 
-👨‍💻 Author
+### 👨‍💻 Author
 
 Talha Ahmad Khan
 Aspiring Software Engineer | Android & Full-Stack Developer
