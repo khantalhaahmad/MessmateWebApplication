@@ -1,4 +1,5 @@
-🍽️ MessMate Web Application
+# 🍽️ **MessMate Web Application**
+
 
 MessMate Web Application is a full-stack food ordering and mess management platform designed to simplify daily meal ordering for users. The application allows users to browse mess menus, place food orders, manage subscriptions, and track order status in real time through a clean and responsive web interface.
 
