@@ -1,0 +1,9 @@
+# system files
+.DS_Store
+
+# env & secrets
+.env
+Backend/config/firebaseServiceAccount.json
+
+# node
+node_modules
