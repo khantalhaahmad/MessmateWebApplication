@@ -42,9 +42,7 @@ router.post("/:messId", upload.single("image"), async (req, res) => {
 // 🟡 Get all menu items for a mess
 router.get("/:messId", async (req, res) => {
   try {
-    const items = await MenuItem.findAll({
-      where: { mess_id: req.params.messId },
-    });
+    const items = await MenuItem.find({ mess_id: req.params.messId });
     res.json(items);
   } catch (error) {
     console.error("Error fetching menu:", error);

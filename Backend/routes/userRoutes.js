@@ -227,5 +227,4 @@ router.post("/test-fcm", verifyToken, async (req, res) => {
     });
   }
 });
-
 export default router;
