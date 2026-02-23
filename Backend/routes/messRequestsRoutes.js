@@ -100,30 +100,26 @@ router.post(
 );
 
 /* ============================================================
-   ✅ APPROVE REQUEST (Admin) — with secure password verification
+   ✅ APPROVE REQUEST (Admin) — FINAL & CORRECT
    ============================================================ */
-import bcrypt from "bcryptjs";
-import User from "../models/User.js";
-
 router.put("/:id/approve", guard, async (req, res) => {
   try {
-    // 🧠 Step 1: Ensure only admin can approve
+    // 🧠 Step 1: Admin check
     if (req.user.role !== "admin") {
       return res
         .status(403)
         .json({ success: false, message: "Admins only" });
     }
 
-    // 🧠 Step 2: Validate admin password input
+    // 🧠 Step 2: Validate admin password
     const { adminPassword, generatedPassword } = req.body;
-
     if (!adminPassword) {
       return res
         .status(400)
         .json({ success: false, message: "Admin password is required" });
     }
 
-    // 🧠 Step 3: Fetch admin user from DB
+    // 🧠 Step 3: Verify admin
     const adminUser = await User.findById(req.user.id);
     if (!adminUser) {
       return res
@@ -131,7 +127,6 @@ router.put("/:id/approve", guard, async (req, res) => {
         .json({ success: false, message: "Admin account not found" });
     }
 
-    // 🧠 Step 4: Verify admin password using bcrypt
     const isMatch = await bcrypt.compare(adminPassword, adminUser.password);
     if (!isMatch) {
       return res
@@ -139,7 +134,7 @@ router.put("/:id/approve", guard, async (req, res) => {
         .json({ success: false, message: "Wrong admin password" });
     }
 
-    // 🧠 Step 5: Find mess request document
+    // 🧠 Step 4: Fetch mess request
     const reqDoc = await MessRequest.findById(req.params.id);
     if (!reqDoc) {
       return res
@@ -147,7 +142,7 @@ router.put("/:id/approve", guard, async (req, res) => {
         .json({ success: false, message: "Mess request not found" });
     }
 
-    // 🧠 Step 6: Prepare menu items for the new Mess
+    // 🧠 Step 5: Prepare menu
     const items = (reqDoc.menu?.items || []).map((i) => ({
       name: i.name,
       price: i.price,
@@ -156,7 +151,7 @@ router.put("/:id/approve", guard, async (req, res) => {
       image: i.imageUrl || "",
     }));
 
-    // 🧠 Step 7: Create new Mess entry
+    // 🧠 Step 6: Create Mess
     const mess = await Mess.create({
       name: reqDoc.name,
       location: reqDoc.location,
@@ -168,9 +163,15 @@ router.put("/:id/approve", guard, async (req, res) => {
       banner: reqDoc.messBanner || reqDoc.documents?.menuPhoto || "",
       menu: { items },
       documents: reqDoc.documents || {},
+      status: "approved",
     });
 
-    // 🧠 Step 8: Optional — Update owner password if admin provided one
+    // ✅ Step 7: PROMOTE STUDENT → OWNER (IMPORTANT)
+    await User.findByIdAndUpdate(reqDoc.owner_id, {
+      role: "owner",
+    });
+
+    // 🧠 Step 8: Optional owner password setup
     if (generatedPassword) {
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
       await User.findByIdAndUpdate(reqDoc.owner_id, {
@@ -178,15 +179,12 @@ router.put("/:id/approve", guard, async (req, res) => {
       });
     }
 
-    // 🧠 Step 9: Delete the approved request
+    // 🧠 Step 9: Remove request
     await reqDoc.deleteOne();
 
-    // 🧠 Step 10: Respond successfully
     return res.json({
       success: true,
-      message: generatedPassword
-        ? "Mess approved successfully with owner password updated ✅"
-        : "Mess approved successfully ✅",
+      message: "Mess approved successfully ✅ Owner role activated",
       mess,
     });
   } catch (error) {
@@ -198,7 +196,6 @@ router.put("/:id/approve", guard, async (req, res) => {
     });
   }
 });
-
 /* ============================================================
    ❌ REJECT REQUEST (Admin)
    ============================================================ */

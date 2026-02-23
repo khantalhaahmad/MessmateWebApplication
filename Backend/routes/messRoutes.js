@@ -10,8 +10,8 @@ import {
 const router = express.Router();
 
 /* ============================================================
-   🧾 CREATE NEW MESS
-   👉 STUDENT → OWNER PROMOTION
+   🧾 CREATE NEW MESS (REQUEST ONLY)
+   👉 ROLE CHANGE = ❌ NOT HERE
    👉 STATUS = PENDING (ADMIN APPROVAL REQUIRED)
    ============================================================ */
 router.post(
@@ -20,7 +20,7 @@ router.post(
   handleMulterErrors(messRequestUploads),
   async (req, res) => {
     try {
-      console.log("➡️ [POST] Create Mess");
+      console.log("➡️ [POST] Create Mess Request");
 
       const userId = req.user?.id || req.user?._id;
       if (!userId) {
@@ -30,7 +30,7 @@ router.post(
         });
       }
 
-      // 🔥 Fetch user
+      // 🔹 Fetch user
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -45,13 +45,6 @@ router.post(
           success: false,
           message: "Missing required fields: name, location",
         });
-      }
-
-      // 🔥 ZOMATO / SWIGGY RULE
-      // First mess creation → promote student to owner
-      if (user.role === "student") {
-        user.role = "owner";
-        await user.save();
       }
 
       /* ---------------- MENU PARSING ---------------- */
@@ -87,7 +80,7 @@ router.post(
         body.messBanner ||
         "";
 
-      /* ---------------- CREATE MESS ---------------- */
+      /* ---------------- CREATE MESS REQUEST ---------------- */
       const newMess = await Mess.create({
         name: body.name,
         location: body.location,
@@ -117,10 +110,10 @@ router.post(
         success: true,
         message: "Mess request submitted. Awaiting admin approval.",
         mess: newMess,
-        role: user.role, // frontend now knows owner role
+        role: user.role, // 🔥 STILL STUDENT
       });
     } catch (err) {
-      console.error("💥 Error creating mess:", err);
+      console.error("💥 Error creating mess request:", err);
       return res.status(500).json({
         success: false,
         message: err.message || "Server error",
