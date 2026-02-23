@@ -5,17 +5,17 @@ import Counter from "./Counter.js";
 const menuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
-  image: { type: String, default: "" }, // ✅ Final image URL
+  image: { type: String, default: "" }, // Final image URL
   description: { type: String, default: "" },
   isVeg: { type: Boolean, default: true },
 });
 
-// 📋 Menu Schema (contains multiple items)
+// 📋 Menu Schema
 const menuSchema = new mongoose.Schema({
   items: { type: [menuItemSchema], default: [] },
 });
 
-// 📄 Documents Schema (Pancard, FSSAI, etc.)
+// 📄 Documents Schema
 const docsSchema = new mongoose.Schema(
   {
     pancard: { type: String, default: "" },
@@ -26,12 +26,18 @@ const docsSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// 🏠 Mess Schema
+// 🏠 Mess Schema (FINAL)
 const messSchema = new mongoose.Schema(
   {
-    mess_id: { type: Number, unique: true },
+    mess_id: {
+      type: Number,
+      unique: true,
+      index: true,
+    },
+
     name: { type: String, required: true },
     location: { type: String, required: true },
+
     price_range: { type: String, default: "" },
     rating: { type: Number, default: 0 },
     delivery_time: { type: String, default: "" },
@@ -41,9 +47,10 @@ const messSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
-    // 🖼 Banner (for Mess card)
+    // 🖼 Banner
     banner: { type: String, default: "" },
 
     // 📋 Menu
@@ -52,7 +59,15 @@ const messSchema = new mongoose.Schema(
     // 📄 Documents
     documents: { type: docsSchema, default: () => ({}) },
 
-    // 💰 Payout status tracking (NEW FIELD)
+    // 🔒 APPROVAL STATUS (🔥 MOST IMPORTANT)
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
+    },
+
+    // 💰 Payout status
     payoutStatus: {
       type: String,
       enum: ["Pending", "Paid"],
@@ -62,9 +77,9 @@ const messSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔢 Auto-increment mess_id
+// 🔢 Auto-increment mess_id (SINGLE SOURCE OF TRUTH)
 messSchema.pre("validate", async function (next) {
-  if (this.isNew) {
+  if (this.isNew && !this.mess_id) {
     try {
       const counter = await Counter.findOneAndUpdate(
         { name: "mess_id" },

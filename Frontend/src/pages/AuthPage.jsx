@@ -67,29 +67,51 @@ const AuthPage = () => {
     });
 
   // ---------- EMAIL + PASSWORD LOGIN ----------
-  const handleEmailLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password)
-      return showError("Missing Fields", "Enter both email and password.");
+const handleEmailLogin = async (e) => {
+  e.preventDefault();
 
-    try {
-      const identifier = String(email).trim().toLowerCase();
-      const res = await api.post("/auth/login", { identifier, password });
-      if (!res.data?.success) throw new Error(res.data?.message || "Login failed");
+  console.group("🟡 LOGIN DEBUG");
 
-      login(res.data);
-      await showSuccess("Welcome Back!", "You’ve successfully logged in.");
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("❌ Email Login Error:", err);
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        "Invalid email or password.";
-      showError("Login Failed", msg);
+  if (!email || !password) {
+    console.groupEnd();
+    return showError("Missing Fields", "Enter both email and password.");
+  }
+
+  const identifier = String(email).trim().toLowerCase();
+  console.log("➡️ POST /auth/login", identifier);
+
+  try {
+    const res = await api.post("/auth/login", {
+      identifier,
+      password,
+    });
+
+    console.log("✅ Response:", res.data);
+
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || "Login failed");
     }
-  };
 
+    login(res.data);
+
+    const role = res.data.user.role;
+
+    if (role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
+    }
+
+    console.groupEnd();
+  } catch (err) {
+    console.error("❌ LOGIN FAILED", err.response?.data || err.message);
+    showError(
+      "Login Failed",
+      err.response?.data?.message || "Invalid credentials"
+    );
+    console.groupEnd();
+  }
+};
   // ---------- SOCIAL LOGIN (Google / Facebook) ----------
   const handleGoogle = async () => {
     try {

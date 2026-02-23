@@ -27,27 +27,35 @@ const api = axios.create({
    ============================================================ */
 api.interceptors.request.use(async (config) => {
   try {
+    // ❌ Skip auth header for public auth routes
+    if (
+      config.url?.includes("/auth/login") ||
+      config.url?.includes("/auth/register")
+    ) {
+      return config;
+    }
+
     const auth = getFirebaseAuth();
     const currentUser = auth.currentUser;
     let token = null;
 
-    // 🔹 Prefer Firebase ID token
+    // 🔹 Prefer Firebase token
     if (currentUser) {
       token = await currentUser.getIdToken(true);
     } else {
-      // 🔹 Fallback for admin or backend JWT users
-      token =
-        localStorage.getItem("adminToken") || localStorage.getItem("token");
+      // 🔹 Backend JWT (admin / non-firebase users)
+      token = localStorage.getItem("token");
     }
 
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   } catch (err) {
-    console.warn("⚠️ Failed to attach Firebase token:", err.message);
+    console.warn("⚠️ Failed to attach auth token:", err.message);
   }
 
   return config;
 });
-
 /* ============================================================
    ⚠️ RESPONSE ERROR INTERCEPTOR
    ============================================================ */
