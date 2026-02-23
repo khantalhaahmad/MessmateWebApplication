@@ -83,13 +83,17 @@ router.post(
 );
 
 /* ============================================================
-   🔐 LOGIN — ADMIN ONLY (Email + Password) [DEBUG ENABLED]
+   🔐 LOGIN — ADMIN ONLY (Email / Phone + Password) [UPDATED]
    ============================================================ */
 router.post(
   "/login",
   [
-    body("email").isEmail().withMessage("Valid email required"),
-    body("password").notEmpty().withMessage("Password is required"),
+    body("identifier")
+      .notEmpty()
+      .withMessage("Email or phone is required"),
+    body("password")
+      .notEmpty()
+      .withMessage("Password is required"),
   ],
   async (req, res) => {
     console.log("🟡 ADMIN LOGIN HIT");
@@ -106,18 +110,26 @@ router.post(
     }
 
     try {
-      const email = String(req.body.email || "").toLowerCase().trim();
+      const identifier = String(req.body.identifier || "")
+        .toLowerCase()
+        .trim();
       const password = String(req.body.password || "");
 
-      console.log("📧 Parsed Email:", email);
+      console.log("🆔 Identifier:", identifier);
       console.log("🔑 Password received:", password ? "YES" : "NO");
 
-      // 🔍 Find admin
-      const user = await User.findOne({ email, role: "admin" });
+      // 🔍 Find ADMIN by email OR phone
+      const user = await User.findOne({
+        role: "admin",
+        $or: [
+          { email: identifier },
+          { phone: identifier },
+        ],
+      });
+
       console.log("👤 Admin found:", user ? "YES" : "NO");
 
       if (!user) {
-        console.warn("❌ Admin not found in DB");
         return res.status(404).json({
           success: false,
           message: "Admin not found",
@@ -129,14 +141,13 @@ router.post(
       console.log("🔐 Password match:", isMatch);
 
       if (!isMatch) {
-        console.warn("❌ Password mismatch");
         return res.status(401).json({
           success: false,
           message: "Invalid credentials",
         });
       }
 
-      // 🎫 Generate token
+      // 🎫 Generate JWT
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
@@ -165,7 +176,6 @@ router.post(
       return res.status(500).json({
         success: false,
         message: "Internal Server Error",
-        error: error.message,
       });
     }
   }
