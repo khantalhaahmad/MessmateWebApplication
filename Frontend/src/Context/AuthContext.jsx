@@ -14,46 +14,35 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   /* ============================================================
-     🔄 SYNC FIREBASE LOGIN STATE + LOCAL STORAGE FALLBACK
+     🔄 SESSION RESTORE (NO BACKEND CALL HERE ❗)
+     - Drawer open hone par koi redirect / blink nahi hoga
+     - Sirf localStorage se session uthayega
   ============================================================ */
   useEffect(() => {
     const auth = getFirebaseAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, () => {
       try {
-        if (firebaseUser) {
-          // ✅ Firebase user detected
-          const firebaseToken = await firebaseUser.getIdToken();
+        const storedUser = localStorage.getItem("user");
+        const storedToken = localStorage.getItem("token");
 
+        if (storedUser && storedToken) {
+          const parsedUser = JSON.parse(storedUser);
           setUser({
-            name: firebaseUser.displayName || firebaseUser.email,
-            email: firebaseUser.email,
-            uid: firebaseUser.uid,
-            role: "student", // default; backend role overrides this
+            ...parsedUser,
+            _id: parsedUser._id || parsedUser.id,
           });
-          setToken(firebaseToken);
+          setToken(storedToken);
         } else {
-          // ✅ Fallback: backend login (saved in localStorage)
-          const storedUser = localStorage.getItem("user");
-          const storedToken = localStorage.getItem("token");
-
-          if (storedUser && storedToken) {
-            const parsedUser = JSON.parse(storedUser);
-            const normalizedUser = {
-              ...parsedUser,
-              _id: parsedUser._id || parsedUser.id,
-            };
-            setUser(normalizedUser);
-            setToken(storedToken);
-          } else {
-            setUser(null);
-            setToken(null);
-          }
+          setUser(null);
+          setToken(null);
         }
       } catch (err) {
-        console.error("Auth sync failed:", err);
+        console.error("❌ Session restore failed:", err);
         setUser(null);
         setToken(null);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
       } finally {
         setLoading(false);
       }
@@ -63,46 +52,50 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /* ============================================================
-     🔐 BACKEND LOGIN HANDLER
+     🔐 LOGIN HANDLER
+     - OTP / Google / Facebook / Email → AuthPage se call hota hai
+     - Redirect yahin se controlled hota hai
   ============================================================ */
   const login = ({ user, token }) => {
     if (!user || !token) {
-      Swal.fire("Error", "Invalid credentials provided.", "error");
+      Swal.fire("Error", "Invalid login response", "error");
       return;
     }
 
-    const normalizedUser = { ...user, _id: user._id || user.id };
+    const normalizedUser = {
+      ...user,
+      _id: user._id || user.id,
+    };
 
-    // Store session
+    // 💾 Store session
     localStorage.setItem("user", JSON.stringify(normalizedUser));
     localStorage.setItem("token", token);
 
-    // Update context
     setUser(normalizedUser);
     setToken(token);
 
-    // ✅ Redirect based on role
+    // 🔁 Redirect (ONLY after successful login)
     setTimeout(() => {
-      if (normalizedUser.role === "admin") navigate("/admin/dashboard");
-      else navigate("/dashboard");
-    }, 300);
+      if (normalizedUser.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }, 200);
   };
 
   /* ============================================================
-     🚪 LOGOUT HANDLER (Firebase + Backend Safe)
+     🚪 LOGOUT HANDLER
+     - Firebase + Backend safe
   ============================================================ */
   const logout = async () => {
     try {
       const auth = getFirebaseAuth();
       await signOut(auth);
     } catch (err) {
-      console.warn(
-        "⚠️ Firebase signOut failed (probably non-Firebase user):",
-        err.message
-      );
+      console.warn("⚠️ Firebase signOut skipped:", err.message);
     }
 
-    // Clear local data
     localStorage.removeItem("user");
     localStorage.removeItem("token");
 
@@ -111,19 +104,18 @@ export const AuthProvider = ({ children }) => {
 
     Swal.fire({
       icon: "success",
-      title: "Logged out successfully",
-      showConfirmButton: false,
+      title: "Logged out",
       timer: 1000,
+      showConfirmButton: false,
     });
 
-    // Small delay before navigation to avoid race conditions
     setTimeout(() => {
       navigate("/", { replace: true });
     }, 200);
   };
 
   /* ============================================================
-     🌍 CONTEXT PROVIDER
+     🌍 PROVIDER
   ============================================================ */
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading }}>

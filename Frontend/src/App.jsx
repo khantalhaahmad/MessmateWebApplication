@@ -20,7 +20,6 @@ import "./styles/responsive.css";
 
 // 💤 Lazy-Loaded Pages (Main)
 const Home = lazy(() => import("./pages/Home"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
 const MessMenu = lazy(() => import("./pages/MessMenu"));
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -88,7 +87,7 @@ function App() {
   }, []);
 
   // 🚫 Routes where footer should be hidden
-  const noFooterRoutes = ["/auth", "/dashboard", "/admin", "/checkout", "/messes"];
+  const noFooterRoutes = ["/dashboard", "/admin", "/checkout", "/messes"];
   const shouldShowFooter = !noFooterRoutes.some((path) =>
     location.pathname.startsWith(path)
   );
@@ -105,7 +104,6 @@ function App() {
               <Routes>
                 {/* 🌍 Public Routes */}
                 <Route path="/" element={<Home />} />
-                <Route path="/auth" element={<AuthPage />} />
                 <Route path="/messes/:mess_id" element={<MessMenu />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/delivery-partners" element={<DeliveryPartners />} />
