@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
-import AuthPage from "../pages/AuthPage"; // ✅ drawer component
+import AuthPage from "../pages/AuthPage";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -12,20 +12,30 @@ const Navbar = () => {
 
   const isHome = location.pathname === "/";
 
-  /* 🧪 DEBUG: Navbar render */
+  /* ======================================================
+     🔥 GLOBAL AUTH DRAWER (SINGLE SOURCE OF TRUTH)
+  ====================================================== */
   useEffect(() => {
-    console.log("📍 Navbar render");
-    console.log("➡️ location.pathname =", location.pathname);
-    console.log("➡️ openAuth =", openAuth);
-  });
+    window.openAuthDrawer = () => {
+      console.log("🟢 window.openAuthDrawer CALLED");
+      setOpenAuth(true);
 
-  /* 🔒 BODY SCROLL LOCK (Swiggy style) */
+      // 🔥 INFORM ALL COMPONENTS
+      window.dispatchEvent(new CustomEvent("auth-drawer-open"));
+    };
+
+    return () => {
+      delete window.openAuthDrawer;
+    };
+  }, []);
+
+  /* ======================================================
+     🔒 BODY SCROLL LOCK
+  ====================================================== */
   useEffect(() => {
     if (openAuth) {
-      console.log("🔒 Body scroll LOCK");
       document.body.style.overflow = "hidden";
     } else {
-      console.log("🔓 Body scroll UNLOCK");
       document.body.style.overflow = "";
     }
 
@@ -34,17 +44,26 @@ const Navbar = () => {
     };
   }, [openAuth]);
 
+  /* ======================================================
+     🔥 CLOSE HANDLER
+  ====================================================== */
+  const closeAuthDrawer = () => {
+    console.log("🔴 AuthPage onClose CALLED");
+    setOpenAuth(false);
+
+    // 🔥 INFORM ALL COMPONENTS
+    window.dispatchEvent(new CustomEvent("auth-drawer-close"));
+  };
+
   return (
     <>
       <nav className="navbar">
-        {/* ✅ Logo */}
         <div className="navbar-left">
           <Link to="/" className="navbar-logo">
             MessMate
           </Link>
         </div>
 
-        {/* ✅ Right side */}
         <div className="navbar-right">
           {!isHome && (
             <Link to="/" className="nav-btn">
@@ -64,17 +83,13 @@ const Navbar = () => {
             </Link>
           )}
 
-          {!user && (
+          {/* 🔥 MAIN FIX: HIDE WHEN DRAWER OPEN */}
+          {!user && !openAuth && (
             <>
               <button
                 type="button"
                 className="nav-btn auth-btn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("🟢 LOGIN BUTTON CLICKED");
-                  setOpenAuth(true);
-                }}
+                onClick={() => window.openAuthDrawer()}
               >
                 Login
               </button>
@@ -82,12 +97,7 @@ const Navbar = () => {
               <button
                 type="button"
                 className="nav-btn auth-btn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("🟢 SIGNUP BUTTON CLICKED");
-                  setOpenAuth(true);
-                }}
+                onClick={() => window.openAuthDrawer()}
               >
                 Signup
               </button>
@@ -96,14 +106,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* 🧪 DEBUG: AuthPage props */}
-      <AuthPage
-        open={openAuth}
-        onClose={() => {
-          console.log("🔴 AuthPage onClose CALLED");
-          setOpenAuth(false);
-        }}
-      />
+      <AuthPage open={openAuth} onClose={closeAuthDrawer} />
     </>
   );
 };

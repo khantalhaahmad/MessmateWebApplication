@@ -1,4 +1,4 @@
-// ✅ src/App.jsx — Updated with Global Lenis Smooth Scroll + Responsive Base
+// ✅ src/App.jsx — FINAL (Floating-only Home + Global Auth Drawer)
 import React, { Suspense, lazy, useEffect } from "react";
 import {
   Routes,
@@ -8,17 +8,21 @@ import {
   matchPath,
 } from "react-router-dom";
 import Lenis from "@studio-freight/lenis";
+
 import { AuthProvider } from "./Context/AuthContext";
 import { CartProvider } from "./Context/CartContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+
+import Navbar from "./components/Navbar";                 // ✅ Navbar
 import FloatingButtons from "./components/FloatingButtons";
+import AuthDrawerProvider from "./components/AuthDrawerProvider"; // ✅ NEW
+import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 // 🧩 Global responsive helpers
 import "./styles/responsive.css";
 
-// 💤 Lazy-Loaded Pages (Main)
+// 💤 Lazy-loaded pages
 const Home = lazy(() => import("./pages/Home"));
 const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
 const MessMenu = lazy(() => import("./pages/MessMenu"));
@@ -28,14 +32,14 @@ const DeliveryPartners = lazy(() => import("./pages/DeliveryPartners"));
 const PartnerLanding = lazy(() => import("./pages/PartnerLanding"));
 const AddMessForm = lazy(() => import("./components/AddMessForm"));
 
-// 🧑‍💼 Admin Pages
+// 🧑‍💼 Admin
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminStudents = lazy(() => import("./pages/AdminStudents"));
 const AdminOwners = lazy(() => import("./pages/AdminOwners"));
 const AdminRevenueReport = lazy(() => import("./pages/AdminRevenueReport"));
 const AdminDeliveryAgents = lazy(() => import("./pages/AdminDeliveryAgents"));
 
-// 📄 Info / Static Pages
+// 📄 Info pages
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Security = lazy(() => import("./pages/Security"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -43,31 +47,18 @@ const HelpSupport = lazy(() => import("./pages/HelpSupport"));
 const ReportFraud = lazy(() => import("./pages/ReportFraud"));
 const Blog = lazy(() => import("./pages/Blog"));
 
-// 🌀 Loader for Suspense
+// 🌀 Loader
 const Loader = () => (
   <div className="loading-screen">
     <div className="spinner" />
     <p>Loading, please wait...</p>
-    <style>{`
-      .loading-screen {
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        height: 100vh; background: linear-gradient(135deg, #f1f4ff, #fafaff);
-        color: #2a2a2a; font-family: 'Poppins', sans-serif;
-      }
-      .spinner {
-        border: 5px solid #e0e0e0; border-top: 5px solid #6c63ff;
-        border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
-        margin-bottom: 12px;
-      }
-      @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-    `}</style>
   </div>
 );
 
 function App() {
   const location = useLocation();
 
-  // ✅ Initialize Lenis for smooth scroll
+  /* ✅ Lenis smooth scroll */
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.3,
@@ -77,32 +68,48 @@ function App() {
       smoothTouch: false,
     });
 
-    function raf(time) {
+    const raf = (time) => {
       lenis.raf(time);
       requestAnimationFrame(raf);
-    }
+    };
     requestAnimationFrame(raf);
 
     return () => lenis.destroy();
   }, []);
 
-  // 🚫 Routes where footer should be hidden
+  /* 🚫 Footer hide rules */
   const noFooterRoutes = ["/dashboard", "/admin", "/checkout", "/messes"];
   const shouldShowFooter = !noFooterRoutes.some((path) =>
     location.pathname.startsWith(path)
   );
+
+  /* 🟢 Home detection */
+  const isHome = location.pathname === "/";
+
+  /* 🎯 Mess menu floating buttons */
   const isMessMenuPage = matchPath("/messes/:mess_id", location.pathname);
 
   return (
     <AuthProvider>
       <CartProvider>
+
+        {/* 🔥 GLOBAL AUTH DRAWER (works everywhere) */}
+        <AuthDrawerProvider />
+
+        {/* ❌ Home par Navbar nahi */}
+        {!isHome && <Navbar />}
+
+        {/* ✅ Home par sirf Floating Login / Signup */}
+        {isHome && <FloatingButtons />}
+
+        {/* (optional) mess menu floating buttons */}
         {isMessMenuPage && <FloatingButtons />}
 
         <main className="app-main">
           <ErrorBoundary>
             <Suspense fallback={<Loader />}>
               <Routes>
-                {/* 🌍 Public Routes */}
+                {/* 🌍 Public */}
                 <Route path="/" element={<Home />} />
                 <Route path="/messes/:mess_id" element={<MessMenu />} />
                 <Route path="/checkout" element={<Checkout />} />
@@ -111,7 +118,7 @@ function App() {
                 <Route path="/partner-with-us" element={<PartnerLanding />} />
                 <Route path="/addmess" element={<AddMessForm />} />
 
-                {/* 👨‍🎓 Dashboard (Protected) */}
+                {/* 👨‍🎓 Dashboard */}
                 <Route
                   path="/dashboard"
                   element={
@@ -163,7 +170,7 @@ function App() {
                   }
                 />
 
-                {/* 📘 Info Pages */}
+                {/* 📘 Info */}
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/terms" element={<TermsOfService />} />
@@ -178,7 +185,7 @@ function App() {
           </ErrorBoundary>
         </main>
 
-        {/* 🦶 Footer visible only on main pages */}
+        {/* 🦶 Footer */}
         {shouldShowFooter && <Footer />}
       </CartProvider>
     </AuthProvider>

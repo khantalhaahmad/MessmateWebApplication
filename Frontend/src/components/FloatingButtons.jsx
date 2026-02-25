@@ -1,22 +1,33 @@
-// ✅ src/components/FloatingButtons.jsx — Updated for AuthPage
+// ✅ src/components/FloatingButtons.jsx — FINAL (Drawer-aware + Click-safe)
 import React, { useContext, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
 import "../styles/FloatingButtons.css";
 
 const FloatingButtons = () => {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
+
   const [visible, setVisible] = useState(true);
   const [isOnWhiteSection, setIsOnWhiteSection] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // 🔥 KEY STATE
 
+  /* ======================================================
+     SHOW ONLY ON HOME PAGE
+  ====================================================== */
   useEffect(() => {
-    // ✅ Hide floating buttons on non-home pages
     if (location.pathname !== "/") {
       setVisible(false);
       return;
     }
+    setVisible(true);
+  }, [location.pathname]);
+
+  /* ======================================================
+     OPTIONAL: section-based visibility + theme
+  ====================================================== */
+  useEffect(() => {
+    if (location.pathname !== "/") return;
 
     const messSection = document.querySelector("#mess-section");
     const footerSection = document.querySelector("#footer-section");
@@ -24,12 +35,12 @@ const FloatingButtons = () => {
 
     if (!messSection || !footerSection || !betterFoodSection) return;
 
-    // ✅ Visibility control
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (
-            (entry.target.id === "mess-section" && entry.intersectionRatio === 1) ||
+            (entry.target.id === "mess-section" &&
+              entry.intersectionRatio === 1) ||
             (entry.target.id === "footer-section" && entry.isIntersecting)
           ) {
             setVisible(false);
@@ -44,11 +55,11 @@ const FloatingButtons = () => {
     observer.observe(messSection);
     observer.observe(footerSection);
 
-    // ✅ Detect white section for color theme
     const colorObserver = new IntersectionObserver(
       ([entry]) => setIsOnWhiteSection(entry.isIntersecting),
       { threshold: 0.3 }
     );
+
     colorObserver.observe(betterFoodSection);
 
     return () => {
@@ -57,49 +68,94 @@ const FloatingButtons = () => {
     };
   }, [location.pathname]);
 
-  // ✅ Handle dashboard navigation based on role
-  const handleDashboardClick = () => {
-    if (!user) {
-      navigate("/auth", { state: { mode: "login" } });
-      return;
+  /* ======================================================
+     🔥 LISTEN AUTH DRAWER OPEN + CLOSE EVENTS (MAIN FIX)
+  ====================================================== */
+  useEffect(() => {
+    const handleDrawerOpen = () => {
+      console.log("🟣 FloatingButtons: auth-drawer-open");
+      setIsDrawerOpen(true);
+    };
+
+    const handleDrawerClose = () => {
+      console.log("🟢 FloatingButtons: auth-drawer-close");
+      setIsDrawerOpen(false);
+    };
+
+    window.addEventListener("auth-drawer-open", handleDrawerOpen);
+    window.addEventListener("auth-drawer-close", handleDrawerClose);
+
+    return () => {
+      window.removeEventListener("auth-drawer-open", handleDrawerOpen);
+      window.removeEventListener("auth-drawer-close", handleDrawerClose);
+    };
+  }, []);
+
+  /* ======================================================
+     🔥 OPEN AUTH DRAWER (CLICK-SAFE)
+  ====================================================== */
+  const openAuthDrawer = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log("🟢 Floating Login / Signup CLICKED");
+
+    if (typeof window.openAuthDrawer === "function") {
+      setIsDrawerOpen(true); // instant hide (UX smooth)
+      window.openAuthDrawer();
+    } else {
+      console.error("❌ window.openAuthDrawer NOT FOUND");
     }
+  };
+
+  /* ======================================================
+     DASHBOARD (WHEN LOGGED IN)
+  ====================================================== */
+  const handleDashboardClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) return;
 
     switch (user.role) {
       case "admin":
-        navigate("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
         break;
       case "owner":
       case "messowner":
       case "student":
-        navigate("/dashboard");
+        window.location.href = "/dashboard";
         break;
       default:
-        navigate("/");
+        window.location.href = "/";
         break;
     }
   };
 
-  // ✅ Handle login/signup redirects
-  const handleAuthRedirect = (mode) => {
-    navigate("/auth", { state: { mode } });
-  };
+  /* ======================================================
+     🔥 MAIN VISIBILITY RULE
+  ====================================================== */
+  if (!visible || isDrawerOpen) return null;
 
   return (
     <div
-      className={`floating-buttons ${visible ? "show" : "hide"} ${
+      className={`floating-buttons ${
         isOnWhiteSection ? "dark-mode" : "light-mode"
       }`}
     >
       {!user ? (
         <>
           <button
-            onClick={() => handleAuthRedirect("login")}
+            type="button"
+            onMouseDown={openAuthDrawer}
             className="floating-btn glass-btn glow-btn"
           >
             Login
           </button>
+
           <button
-            onClick={() => handleAuthRedirect("signup")}
+            type="button"
+            onMouseDown={openAuthDrawer}
             className="floating-btn glass-btn glow-btn"
           >
             Signup
@@ -107,7 +163,8 @@ const FloatingButtons = () => {
         </>
       ) : (
         <button
-          onClick={handleDashboardClick}
+          type="button"
+          onMouseDown={handleDashboardClick}
           className="floating-btn dashboard-btn glow-btn"
         >
           Dashboard

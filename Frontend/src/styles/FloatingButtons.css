@@ -1,13 +1,20 @@
-/* ===== Floating Buttons Container ===== */
+/* ======================================================
+   Floating Buttons Container (CLICK SAFE)
+====================================================== */
 .floating-buttons {
   position: fixed;
   top: 25px;
   right: 35px;
+
   display: flex;
   gap: 15px;
-  z-index: 9999;
+
+  z-index: 99999;                 /* 🔥 MUST be very high */
+  pointer-events: auto;           /* 🔥 allow clicks */
+
   opacity: 1;
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 /* Hide when mess/footer section visible */
@@ -21,48 +28,68 @@
 .floating-buttons.show {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
-/* ===== Base Floating Button ===== */
+/* ======================================================
+   Base Floating Button
+====================================================== */
 .floating-btn {
   font-family: "Poppins", sans-serif;
   font-weight: 600;
-  text-decoration: none;
   font-size: 1rem;
+
   padding: 10px 26px;
   border-radius: 40px;
   border: none;
+
   cursor: pointer;
+  pointer-events: auto;           /* 🔥 ensure clickable */
+
   backdrop-filter: blur(15px);
-  transition: all 0.35s ease;
+  -webkit-backdrop-filter: blur(15px);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* ===== Light Mode (on Hero video/dark background) ===== */
+/* ======================================================
+   Light Mode (on hero / dark background)
+====================================================== */
 .floating-buttons.light-mode .glass-btn {
   background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15);
 }
 
-/* ===== Dark Mode (on white background) ===== */
+/* ======================================================
+   Dark Mode (on white background)
+====================================================== */
 .floating-buttons.dark-mode .glass-btn {
   background: rgba(0, 0, 0, 0.25);
-  color: #fff;
+  color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.3);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* ===== Hover Effects ===== */
+/* ======================================================
+   Hover / Active Effects
+====================================================== */
 .glass-btn:hover {
   transform: scale(1.08);
-  transition: all 0.25s ease;
 }
 
-/* ===== Glow Effect for Both Login & Signup ===== */
+.glass-btn:active {
+  transform: scale(0.96);         /* 🔥 touch feedback */
+}
+
+/* ======================================================
+   Glow Effect
+====================================================== */
 .glow-btn {
   position: relative;
   overflow: hidden;
@@ -72,15 +99,18 @@
   content: "";
   position: absolute;
   inset: 0;
+
   background: linear-gradient(
     120deg,
     rgba(255, 255, 255, 0.6),
     rgba(255, 77, 77, 0.4),
     rgba(255, 255, 255, 0.6)
   );
+
   opacity: 0;
-  transition: opacity 0.4s ease;
   filter: blur(12px);
+  transition: opacity 0.35s ease;
+
   z-index: -1;
 }
 
@@ -88,9 +118,11 @@
   opacity: 1;
 }
 
-/* ===== Dashboard Button ===== */
+/* ======================================================
+   Dashboard Button
+====================================================== */
 .dashboard-btn {
-  background: #fff;
+  background: #ffffff;
   color: #ff4d4d;
   border: 2px solid #ff4d4d;
   box-shadow: 0 6px 20px rgba(255, 77, 77, 0.25);
@@ -98,12 +130,14 @@
 
 .dashboard-btn:hover {
   background: #ff4d4d;
-  color: #fff;
+  color: #ffffff;
   transform: scale(1.1);
   box-shadow: 0 8px 25px rgba(255, 77, 77, 0.45);
 }
 
-/* ===== Smooth Entry Animation ===== */
+/* ======================================================
+   Smooth Entry Animation
+====================================================== */
 @keyframes fadeSlideIn {
   from {
     opacity: 0;
@@ -116,5 +150,23 @@
 }
 
 .floating-buttons.show {
-  animation: fadeSlideIn 0.6s ease forwards;
+  animation: fadeSlideIn 0.5s ease forwards;
+}
+
+/* ======================================================
+   Mobile Optimization (IMPORTANT)
+====================================================== */
+@media (max-width: 768px) {
+  .floating-buttons {
+    top: auto;
+    bottom: 20px;
+    right: 50%;
+    transform: translateX(50%);
+    gap: 12px;
+  }
+
+  .floating-btn {
+    padding: 10px 22px;
+    font-size: 0.95rem;
+  }
 }
