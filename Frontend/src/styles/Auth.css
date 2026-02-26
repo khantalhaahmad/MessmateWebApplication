@@ -8,7 +8,7 @@
   --orange: #fc8019;
   --text-dark: #282c3f;
   --text-light: #686b78;
-  --border: #e9e9eb;
+  --border: #d4d5d9;
 }
 
 /* ---------- Backdrop ---------- */
@@ -29,9 +29,10 @@
   height: 100vh;
   background: #fff;
   z-index: 1000;
-  padding: 32px 28px;
   font-family: "Poppins", sans-serif;
   animation: slideIn 0.35s ease forwards;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Slide animation */
@@ -46,115 +47,148 @@
 
 /* ---------- Header ---------- */
 .auth-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: relative;
+  padding: 14px 22px 18px;
+  border-bottom: 1px solid var(--border);
 }
 
-.auth-title {
+/* Close button */
+.auth-close-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
   font-size: 22px;
-  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
   color: var(--text-dark);
 }
 
-.auth-close {
-  font-size: 26px;
-  cursor: pointer;
-  color: var(--text-light);
+/* Container below ❌ */
+.auth-header-content {
+  margin-top: 28px; /* ❌ ke neeche */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* ---------- Subtext ---------- */
+/* Login text */
+.auth-title {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-dark);
+}
+
+/* Bigger logo */
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.auth-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- Content ---------- */
+.auth-drawer > :not(.auth-header) {
+  padding: 20px 24px;
+}
+
 .auth-subtext {
   font-size: 14px;
   color: var(--text-light);
-  margin: 12px 0 24px;
+  margin: 6px 0 16px;
 }
 
-/* ---------- Input ---------- */
-.auth-input {
-  width: 100%;
-  padding: 14px 12px;
-  font-size: 15px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: 14px;
-  outline: none;
-}
-
-.auth-input:focus {
-  border-color: var(--orange);
-}
-
-/* ---------- Phone row ---------- */
-.phone-row {
+/* ---------- Phone Input ---------- */
+.phone-input {
   display: flex;
   align-items: center;
-  gap: 10px;
+  height: 50px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 12px;
+  margin-bottom: 16px;
 }
 
-.country-code {
-  font-size: 15px;
-  font-weight: 500;
+.phone-input span {
+  font-size: 14px;
+  margin-right: 10px;
+  color: var(--text-dark);
 }
 
-/* ---------- Primary button ---------- */
+.phone-input input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+/* ---------- Primary Button ---------- */
 .auth-btn {
   width: 100%;
-  padding: 14px;
+  height: 48px;
   background: var(--orange);
   color: #fff;
   border: none;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 8px;
-}
-
-.auth-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  margin-top: 4px;
 }
 
 /* ---------- Divider ---------- */
-.auth-divider {
+.or-divider {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 22px 0;
-  color: var(--text-light);
+  margin: 16px 0;
   font-size: 13px;
+  color: var(--text-light);
 }
 
-.auth-divider::before,
-.auth-divider::after {
+.or-divider::before,
+.or-divider::after {
   content: "";
   flex: 1;
   height: 1px;
   background: var(--border);
 }
 
-/* ---------- Social ---------- */
+.or-divider span {
+  margin: 0 8px;
+}
+
+/* ---------- Social Buttons ---------- */
 .social-btn {
   width: 100%;
-  padding: 12px;
+  height: 46px;
   border: 1px solid var(--border);
   background: #fff;
   font-size: 14px;
   cursor: pointer;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.social-btn.facebook {
+  color: #1877f2;
 }
 
 /* ---------- OTP ---------- */
-.otp-info {
-  font-size: 13px;
-  color: var(--text-light);
-  margin-bottom: 8px;
-}
-
 .timer-text {
   font-size: 13px;
   color: var(--text-light);
-  margin-top: 8px;
+  margin-top: 10px;
   text-align: center;
 }
 
@@ -162,6 +196,18 @@
 @media (max-width: 480px) {
   .auth-drawer {
     width: 100%;
-    padding: 24px 20px;
+  }
+
+  .auth-drawer > :not(.auth-header) {
+    padding: 16px 20px;
+  }
+
+  .auth-title {
+    font-size: 24px;
+  }
+
+  .auth-logo {
+    width: 56px;
+    height: 56px;
   }
 }
