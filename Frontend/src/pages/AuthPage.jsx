@@ -23,6 +23,10 @@ const AuthPage = ({ open, onClose }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [timer, setTimer] = useState(0);
 
+  // 🔥 Loader states
+  const [loadingSendOtp, setLoadingSendOtp] = useState(false);
+  const [loadingVerifyOtp, setLoadingVerifyOtp] = useState(false);
+
   const verifierRef = useRef(null);
   const confirmRef = useRef(null);
   const countdownRef = useRef(null);
@@ -32,7 +36,7 @@ const AuthPage = ({ open, onClose }) => {
     Swal.fire({ icon: "success", title: t, text: x });
 
   const error = (t, x = "") =>
-    Swal.fire({ icon: "error", title: t, text: x });
+  Swal.fire({ icon: "error", title: t, text: x });
 
   const clearVerifier = () => {
     try {
@@ -60,11 +64,14 @@ const AuthPage = ({ open, onClose }) => {
     return verifier;
   };
 
+  /* ================= SEND OTP ================= */
   const sendOTP = async () => {
     if (phone.length !== 10)
       return error("Invalid Phone", "Enter valid 10-digit number");
 
     try {
+      setLoadingSendOtp(true); // 🔥 start loader
+
       const auth = getFirebaseAuth();
       const confirmation = await signInWithPhoneNumber(
         auth,
@@ -74,6 +81,7 @@ const AuthPage = ({ open, onClose }) => {
 
       confirmRef.current = confirmation;
       setOtpSent(true);
+
       deadlineRef.current = Date.now() + 30000;
       setTimer(30);
 
@@ -92,38 +100,50 @@ const AuthPage = ({ open, onClose }) => {
     } catch {
       clearVerifier();
       error("OTP Failed");
+    } finally {
+      setLoadingSendOtp(false); // 🔥 stop loader
     }
   };
 
+  /* ================= VERIFY OTP ================= */
   const verifyOTP = async () => {
     if (!otp || !confirmRef.current) return error("Invalid OTP");
 
     try {
+      setLoadingVerifyOtp(true); // 🔥 start loader
+
       const result = await confirmRef.current.confirm(otp);
       const idToken = await result.user.getIdToken();
+
       const res = await api.post(
         "/auth/firebase-login",
         {},
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
+
       login(res.data);
       success("Login Successful");
       onClose();
     } catch {
       error("Wrong OTP");
+    } finally {
+      setLoadingVerifyOtp(false); // 🔥 stop loader
     }
   };
 
+  /* ================= SOCIAL LOGIN ================= */
   const socialLogin = async (provider) => {
     try {
       const auth = getFirebaseAuth();
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
+
       const res = await api.post(
         "/auth/firebase-login",
         {},
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
+
       login(res.data);
       success("Login Successful");
       onClose();
@@ -145,7 +165,6 @@ const AuthPage = ({ open, onClose }) => {
 
           <div className="auth-header-content">
             <h2 className="auth-title">Login</h2>
-
             <div className="auth-logo">
               <img src="/assets/messmate.png" alt="MessMate" />
             </div>
@@ -154,9 +173,9 @@ const AuthPage = ({ open, onClose }) => {
 
         {!otpSent ? (
           <>
-            {/* Phone input – single closed box */}
+            {/* Phone input */}
             <div className="phone-input">
-              <span>+91</span>
+              <span className="country-code">+91</span>
               <input
                 type="tel"
                 placeholder="Mobile number"
@@ -167,8 +186,13 @@ const AuthPage = ({ open, onClose }) => {
               />
             </div>
 
-            <button className="auth-btn" onClick={sendOTP}>
-              Continue
+            {/* 🔥 Continue with loader */}
+            <button
+              className="continue-btn"
+              onClick={sendOTP}
+              disabled={loadingSendOtp}
+            >
+              {loadingSendOtp ? <span className="btn-loader" /> : "Continue"}
             </button>
 
             <div className="or-divider">
@@ -193,17 +217,27 @@ const AuthPage = ({ open, onClose }) => {
           </>
         ) : (
           <>
-            <p className="auth-subtext">Enter OTP sent to +91 {phone}</p>
+            <p className="auth-subtext">
+              Enter OTP sent to <strong>+91 {phone}</strong>
+            </p>
 
             <input
               className="auth-input"
               placeholder={`Enter OTP (${timer}s)`}
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              maxLength={6}
+              onChange={(e) =>
+                setOtp(e.target.value.replace(/\D/g, ""))
+              }
             />
 
-            <button className="auth-btn" onClick={verifyOTP}>
-              Verify OTP
+            {/* 🔥 Verify OTP with loader */}
+            <button
+              className="continue-btn"
+              onClick={verifyOTP}
+              disabled={loadingVerifyOtp}
+            >
+              {loadingVerifyOtp ? <span className="btn-loader" /> : "Verify OTP"}
             </button>
 
             <p className="timer-text">OTP expires in {timer}s</p>
