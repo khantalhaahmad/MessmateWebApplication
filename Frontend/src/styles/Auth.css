@@ -48,7 +48,7 @@
 /* ---------- Header ---------- */
 .auth-header {
   position: relative;
-  padding: 14px 22px 18px;
+  padding: 14px 22px 20px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -66,15 +66,15 @@
 
 /* Container below ❌ */
 .auth-header-content {
-  margin-top: 28px; /* ❌ ke neeche */
+  margin-top: 30px; /* 🔥 more space below cross */
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-/* Login text */
+/* Login text (bigger) */
 .auth-title {
-  font-size: 26px;
+  font-size: 28px;          /* 🔥 bigger like Swiggy */
   font-weight: 600;
   margin: 0;
   color: var(--text-dark);
@@ -82,8 +82,8 @@
 
 /* Bigger logo */
 .auth-logo {
-  width: 64px;
-  height: 64px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   overflow: hidden;
   background: #fff;
@@ -98,29 +98,23 @@
 
 /* ---------- Content ---------- */
 .auth-drawer > :not(.auth-header) {
-  padding: 20px 24px;
+  padding: 26px 24px;   /* 🔥 more vertical spacing */
 }
 
-.auth-subtext {
-  font-size: 14px;
-  color: var(--text-light);
-  margin: 6px 0 16px;
-}
-
-/* ---------- Phone Input ---------- */
+/* ---------- Phone Input (Swiggy style) ---------- */
 .phone-input {
   display: flex;
   align-items: center;
-  height: 50px;
+  height: 56px;             /* 🔥 bigger box */
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0 12px;
-  margin-bottom: 16px;
+  border-radius: 0;         /* 🔥 square box */
+  padding: 0 16px;          /* 🔥 inner spacing */
+  margin-bottom: 20px;      /* 🔥 space below */
 }
 
 .phone-input span {
-  font-size: 14px;
-  margin-right: 10px;
+  font-size: 15px;
+  margin-right: 14px;
   color: var(--text-dark);
 }
 
@@ -128,27 +122,31 @@
   flex: 1;
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: 15px;
+}
+
+/* Focus state */
+.phone-input:focus-within {
+  border-color: var(--orange);
 }
 
 /* ---------- Primary Button ---------- */
 .auth-btn {
   width: 100%;
-  height: 48px;
+  height: 50px;
   background: var(--orange);
   color: #fff;
   border: none;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 4px;
 }
 
 /* ---------- Divider ---------- */
 .or-divider {
   display: flex;
   align-items: center;
-  margin: 16px 0;
+  margin: 18px 0;
   font-size: 13px;
   color: var(--text-light);
 }
@@ -168,7 +166,7 @@
 /* ---------- Social Buttons ---------- */
 .social-btn {
   width: 100%;
-  height: 46px;
+  height: 48px;
   border: 1px solid var(--border);
   background: #fff;
   font-size: 14px;
@@ -199,15 +197,15 @@
   }
 
   .auth-drawer > :not(.auth-header) {
-    padding: 16px 20px;
+    padding: 20px;
   }
 
   .auth-title {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .auth-logo {
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
   }
 }
