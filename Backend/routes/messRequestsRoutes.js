@@ -1,11 +1,12 @@
 // Backend/routes/messRequestRoutes.js
 import express from "express";
 import { body, validationResult } from "express-validator";
+import bcrypt from "bcryptjs";                 // ✅ ADD
 import MessRequest from "../models/MessRequest.js";
 import Mess from "../models/Mess.js";
+import User from "../models/User.js";           // ✅ ADD
 import verifyToken, { verifyToken as verifyTokenNamed } from "../middleware/auth.js";
 import { messRequestUploads, handleMulterErrors } from "../middleware/uploadMiddleware.js";
-
 const router = express.Router();
 
 // pick whichever export style you prefer

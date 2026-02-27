@@ -1,4 +1,4 @@
-// ✅ src/App.jsx — FINAL (Floating-only Home + Global Auth Drawer)
+// ✅ src/App.jsx — UPDATED with Admin Login support
 import React, { Suspense, lazy, useEffect } from "react";
 import {
   Routes,
@@ -12,17 +12,18 @@ import Lenis from "@studio-freight/lenis";
 import { AuthProvider } from "./Context/AuthContext";
 import { CartProvider } from "./Context/CartContext";
 
-import Navbar from "./components/Navbar";                 // ✅ Navbar
+import Navbar from "./components/Navbar";
 import FloatingButtons from "./components/FloatingButtons";
-import AuthDrawerProvider from "./components/AuthDrawerProvider"; // ✅ NEW
+import AuthDrawerProvider from "./components/AuthDrawerProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-// 🧩 Global responsive helpers
 import "./styles/responsive.css";
 
-// 💤 Lazy-loaded pages
+/* ============================
+   Lazy-loaded pages
+============================ */
 const Home = lazy(() => import("./pages/Home"));
 const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
 const MessMenu = lazy(() => import("./pages/MessMenu"));
@@ -32,14 +33,15 @@ const DeliveryPartners = lazy(() => import("./pages/DeliveryPartners"));
 const PartnerLanding = lazy(() => import("./pages/PartnerLanding"));
 const AddMessForm = lazy(() => import("./components/AddMessForm"));
 
-// 🧑‍💼 Admin
+/* 🧑‍💼 Admin */
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminStudents = lazy(() => import("./pages/AdminStudents"));
 const AdminOwners = lazy(() => import("./pages/AdminOwners"));
 const AdminRevenueReport = lazy(() => import("./pages/AdminRevenueReport"));
 const AdminDeliveryAgents = lazy(() => import("./pages/AdminDeliveryAgents"));
 
-// 📄 Info pages
+/* 📄 Info pages */
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Security = lazy(() => import("./pages/Security"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -47,7 +49,7 @@ const HelpSupport = lazy(() => import("./pages/HelpSupport"));
 const ReportFraud = lazy(() => import("./pages/ReportFraud"));
 const Blog = lazy(() => import("./pages/Blog"));
 
-// 🌀 Loader
+/* 🌀 Loader */
 const Loader = () => (
   <div className="loading-screen">
     <div className="spinner" />
@@ -58,7 +60,9 @@ const Loader = () => (
 function App() {
   const location = useLocation();
 
-  /* ✅ Lenis smooth scroll */
+  /* ============================
+     Smooth scroll (Lenis)
+  ============================ */
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.3,
@@ -77,38 +81,38 @@ function App() {
     return () => lenis.destroy();
   }, []);
 
-  /* 🚫 Footer hide rules */
+  /* ============================
+     UI visibility rules
+  ============================ */
+
+  const isHome = location.pathname === "/";
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const isMessMenuPage = matchPath("/messes/:mess_id", location.pathname);
+
   const noFooterRoutes = ["/dashboard", "/admin", "/checkout", "/messes"];
   const shouldShowFooter = !noFooterRoutes.some((path) =>
     location.pathname.startsWith(path)
   );
 
-  /* 🟢 Home detection */
-  const isHome = location.pathname === "/";
-
-  /* 🎯 Mess menu floating buttons */
-  const isMessMenuPage = matchPath("/messes/:mess_id", location.pathname);
-
   return (
     <AuthProvider>
       <CartProvider>
 
-        {/* 🔥 GLOBAL AUTH DRAWER (works everywhere) */}
+        {/* 🔥 Global Auth Drawer */}
         <AuthDrawerProvider />
 
-        {/* ❌ Home par Navbar nahi */}
-        {!isHome && <Navbar />}
+        {/* ❌ Navbar hide on Home & Admin */}
+        {!isHome && !isAdminRoute && <Navbar />}
 
-        {/* ✅ Home par sirf Floating Login / Signup */}
+        {/* ✅ Floating buttons only on Home / Mess menu */}
         {isHome && <FloatingButtons />}
-
-        {/* (optional) mess menu floating buttons */}
         {isMessMenuPage && <FloatingButtons />}
 
         <main className="app-main">
           <ErrorBoundary>
             <Suspense fallback={<Loader />}>
               <Routes>
+
                 {/* 🌍 Public */}
                 <Route path="/" element={<Home />} />
                 <Route path="/messes/:mess_id" element={<MessMenu />} />
@@ -118,7 +122,10 @@ function App() {
                 <Route path="/partner-with-us" element={<PartnerLanding />} />
                 <Route path="/addmess" element={<AddMessForm />} />
 
-                {/* 👨‍🎓 Dashboard */}
+                {/* 🔐 Admin Login (PUBLIC but hidden URL) */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+
+                {/* 👨‍🎓 Student / Owner Dashboard */}
                 <Route
                   path="/dashboard"
                   element={
@@ -128,7 +135,7 @@ function App() {
                   }
                 />
 
-                {/* 🧑‍💼 Admin */}
+                {/* 🧑‍💼 Admin Protected Routes */}
                 <Route
                   path="/admin/dashboard"
                   element={
@@ -187,6 +194,7 @@ function App() {
 
         {/* 🦶 Footer */}
         {shouldShowFooter && <Footer />}
+
       </CartProvider>
     </AuthProvider>
   );
