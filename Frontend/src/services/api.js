@@ -27,7 +27,7 @@ const api = axios.create({
    ============================================================ */
 api.interceptors.request.use(async (config) => {
   try {
-    // ❌ Skip auth header for public auth routes
+    // Skip auth for login/register
     if (
       config.url?.includes("/auth/login") ||
       config.url?.includes("/auth/register")
@@ -37,38 +37,50 @@ api.interceptors.request.use(async (config) => {
 
     const auth = getFirebaseAuth();
     const currentUser = auth.currentUser;
+
     let token = null;
 
-    // 🔹 Prefer Firebase token
+    // 🔹 Firebase users
     if (currentUser) {
-      token = await currentUser.getIdToken(true);
-    } else {
-      // 🔹 Backend JWT (admin / non-firebase users)
+      token = await currentUser.getIdToken(); // 🔥 FIXED (removed force refresh)
+    } 
+    // 🔹 Backend JWT fallback
+    else {
       token = localStorage.getItem("token");
     }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("🔐 Token attached →", config.url);
+    } else {
+      console.warn("⚠️ No auth token found for request:", config.url);
     }
+
   } catch (err) {
     console.warn("⚠️ Failed to attach auth token:", err.message);
   }
 
   return config;
 });
+
 /* ============================================================
    ⚠️ RESPONSE ERROR INTERCEPTOR
    ============================================================ */
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+
+    console.error("💥 API Error:", err.response?.data || err.message);
+
     if (err.response?.status === 401) {
       console.warn("⚠️ Unauthorized → Clearing session...");
       localStorage.clear();
+
       if (!window.location.pathname.startsWith("/login")) {
         window.location.href = "/login";
       }
     }
+
     return Promise.reject(err);
   }
 );
@@ -80,6 +92,9 @@ if (import.meta.env.DEV) {
   console.log("✅ API Base URL →", `${baseURL}/api`);
 }
 
+/* ============================================================
+   📦 Upload helper
+   ============================================================ */
 export const buildUploadConfig = (onUploadProgress, signal) => ({
   headers: {},
   onUploadProgress,

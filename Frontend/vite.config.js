@@ -7,17 +7,23 @@ export default defineConfig({
     react(),
     visualizer({
       filename: "bundle-analysis.html",
-      open: false, // set true to auto-open after build
+      open: false,
       gzipSize: true,
       brotliSize: true,
     }),
   ],
 
   server: {
+    host: true,              // 🔥 VERY IMPORTANT
     port: 5173,
+    strictPort: true,
     open: true,
     cors: true,
-    hmr: { overlay: true },
+
+    hmr: {
+      host: "localhost",     // 🔥 prevents white screen
+    },
+
     proxy: {
       "/api": {
         target: "http://localhost:4000",

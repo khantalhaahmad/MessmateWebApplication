@@ -23,15 +23,17 @@ const Checkout = () => {
         return item.image.replace("./", "/");
       return `/assets/${item.image}`;
     }
+
     const formatted = item.name
       .toLowerCase()
       .replace(/\s+/g, "")
       .replace(/[()]/g, "");
+
     return `/assets/${formatted}.png`;
   };
 
   /* ------------------------------------------------------------
-     ✅ Helper: Create Order on Backend (Now uses Firebase token automatically)
+     ✅ Create Order
   ------------------------------------------------------------ */
   const createOrder = async (paymentMethod) => {
     try {
@@ -41,9 +43,18 @@ const Checkout = () => {
       const validMess = cartItems.find(
         (item) => item.mess_id && item.mess_id !== "N/A"
       );
+
       const mess_id = validMess?.mess_id || cartItems[0]?.mess_id;
       const mess_name = validMess?.mess_name || cartItems[0]?.mess_name;
-      const total = calculateTotal();
+
+      if (!mess_id || !mess_name) {
+        console.error("🚨 Invalid mess info:", cartItems);
+        toast.error("Invalid mess detected in cart");
+        return;
+      }
+
+      const subtotal = calculateTotal();
+      const grandTotal = subtotal * 1.05 + 20;
 
       const items = cartItems.map((item) => ({
         name: item.name,
@@ -51,22 +62,20 @@ const Checkout = () => {
         quantity: item.quantity,
       }));
 
-      console.log("📦 Sending order:", {
-        mess_id,
-        mess_name,
-        paymentMethod,
-        total,
-      });
-
-      // No need for manual token — Axios interceptor adds Firebase ID token
-      await api.post("/orders", {
+      const payload = {
         mess_id,
         mess_name,
         items,
-        total_price: total,
+        total_price: grandTotal,
         paymentMethod,
         status: paymentMethod === "COD" ? "Pending (COD)" : "confirmed",
-      });
+      };
+
+      console.log("📦 Sending order:", payload);
+
+      const res = await api.post("/orders", payload);
+
+      console.log("✅ Order response:", res.data);
 
       Swal.fire({
         title: "🍽️ Order Placed Successfully! 🎉",
@@ -95,24 +104,29 @@ const Checkout = () => {
         window.location.href = "/my-orders";
       });
     } catch (error) {
-      console.error("💥 Order Error:", error);
-      toast.error("❌ Failed to place order. Please try again!");
+      console.error("💥 Order Error:", error.response?.data || error);
+      toast.error(
+        error.response?.data?.message ||
+          "❌ Failed to place order. Please try again!"
+      );
     }
   };
 
   /* ------------------------------------------------------------
-     ✅ Online Payment + Order (Firebase Auth included automatically)
+     ✅ Online Payment + Order
   ------------------------------------------------------------ */
   const handlePaymentAndOrder = async () => {
     try {
       if (cartItems.length === 0)
         return toast.error("🛒 Your cart is empty. Add items first!");
 
-      const total = calculateTotal();
+      const subtotal = calculateTotal();
+      const grandTotal = subtotal * 1.05 + 20;
+
       setLoading(true);
 
       const { data: order } = await api.post("/payment/create-order", {
-        amount: total,
+        amount: grandTotal,
       });
 
       const options = {
@@ -122,8 +136,10 @@ const Checkout = () => {
         name: "MessMate",
         description: "Mess Payment",
         order_id: order.id,
+
         handler: async (response) => {
           const verifyRes = await api.post("/payment/verify", response);
+
           if (verifyRes.data.success) {
             await createOrder("Online");
             toast.success("✅ Payment Success & Order Placed!");
@@ -131,15 +147,18 @@ const Checkout = () => {
             toast.error("❌ Payment Verification Failed!");
           }
         },
+
         prefill: {
           name: user?.name || "Customer",
           email: user?.email || "user@example.com",
           contact: user?.phone || "9999999999",
         },
+
         theme: { color: "#4CAF50" },
       };
 
       new window.Razorpay(options).open();
+
       setLoading(false);
     } catch (error) {
       console.error("💥 Payment Error:", error);
@@ -149,7 +168,7 @@ const Checkout = () => {
   };
 
   /* ------------------------------------------------------------
-     ✅ Cash on Delivery (COD)
+     ✅ Cash on Delivery
   ------------------------------------------------------------ */
   const handleCODOrder = async () => {
     await createOrder("COD");
@@ -195,6 +214,7 @@ const Checkout = () => {
                     Total: ₹{(item.price * item.quantity).toFixed(2)}
                   </strong>
                 </div>
+
                 <button
                   className="remove-item"
                   onClick={() => removeFromCart(item)}
@@ -209,32 +229,40 @@ const Checkout = () => {
           <div className="summary-section">
             <div className="delivery-box">
               <h3>Delivery Details 🚚</h3>
+
               <p>
                 <strong>{user?.name || "Customer"}</strong>
               </p>
+
               <p>{user?.email || "user@example.com"}</p>
+
               <p>{user?.phone || "9999999999"}</p>
+
               <p className="address-line">
-                📍{" "}
-                {user?.address || "Your saved address will appear here"}
+                📍 {user?.address || "Your saved address will appear here"}
               </p>
             </div>
 
             <div className="bill-box">
               <h3>Bill Summary</h3>
+
               <div className="summary-row">
                 <span>Subtotal</span>
                 <span>₹{calculateTotal().toFixed(2)}</span>
               </div>
+
               <div className="summary-row">
                 <span>GST (5%)</span>
                 <span>₹{(calculateTotal() * 0.05).toFixed(2)}</span>
               </div>
+
               <div className="summary-row">
                 <span>Delivery Fee</span>
                 <span>₹20.00</span>
               </div>
+
               <hr />
+
               <div className="summary-row total">
                 <span>Grand Total</span>
                 <span>₹{(calculateTotal() * 1.05 + 20).toFixed(2)}</span>
@@ -249,6 +277,7 @@ const Checkout = () => {
               >
                 {loading ? "Processing..." : "💳 Pay Securely Online"}
               </button>
+
               <button className="btn cod" onClick={handleCODOrder}>
                 💵 Cash on Delivery
               </button>
