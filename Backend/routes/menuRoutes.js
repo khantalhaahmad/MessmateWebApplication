@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import MenuItem from "../models/MenuItem.js";
 import Mess from "../models/Mess.js";
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -8,19 +9,48 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 /* =====================================
+   📂 Ensure uploads folder exists
+===================================== */
+
+const uploadDir = "uploads";
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+/* =====================================
    📸 MULTER CONFIG
 ===================================== */
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueName =
+      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+
+    cb(null, uniqueName);
   },
 });
 
-const upload = multer({ storage });
+/* allow only images */
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed"), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+});
 
 /* =====================================
    🟢 ADD MENU ITEM
@@ -35,19 +65,15 @@ router.post("/:messId", authMiddleware, upload.single("image"), async (req, res)
 
     if (!mess) {
       return res.status(404).json({
-        success:false,
-        message:"Mess not found"
+        success: false,
+        message: "Mess not found",
       });
     }
 
-    /* -----------------------------
-       Ownership check
-    ----------------------------- */
-
     if (mess.owner_id.toString() !== req.user.id) {
       return res.status(403).json({
-        success:false,
-        message:"You are not allowed to modify this mess"
+        success: false,
+        message: "You are not allowed to modify this mess",
       });
     }
 
@@ -55,32 +81,28 @@ router.post("/:messId", authMiddleware, upload.single("image"), async (req, res)
 
     if (!name || !price) {
       return res.status(400).json({
-        success:false,
-        message:"Item name and price are required"
+        success: false,
+        message: "Item name and price are required",
       });
     }
 
     const normalizedName = name.trim().toLowerCase();
 
-    /* -----------------------------
-       Duplicate item check
-    ----------------------------- */
-
     const existingItem = await MenuItem.findOne({
       mess_id: messId,
-      name: normalizedName
+      name: normalizedName,
     });
 
     if (existingItem) {
       return res.status(400).json({
-        success:false,
-        message:"This item already exists in your menu"
+        success: false,
+        message: "This item already exists in your menu",
       });
     }
 
     const imagePath = req.file
       ? `/uploads/${req.file.filename}`
-      : "default.png";
+      : "/uploads/default.png";
 
     const menuItem = await MenuItem.create({
       mess_id: messId,
@@ -95,31 +117,24 @@ router.post("/:messId", authMiddleware, upload.single("image"), async (req, res)
     console.log("🍽 Menu item added:", menuItem.name);
 
     res.status(201).json({
-      success:true,
-      message:"Menu item added successfully",
-      item:menuItem
+      success: true,
+      message: "Menu item added successfully",
+      item: menuItem,
     });
 
   } catch (error) {
 
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success:false,
-        message:"This item already exists in your menu"
-      });
-    }
-
     console.error("❌ Error adding menu item:", error);
 
     res.status(500).json({
-      success:false,
-      message:"Failed to add menu item"
+      success: false,
+      message: "Failed to add menu item",
     });
   }
 });
 
 /* =====================================
-   🟡 GET MENU ITEMS
+   🟡 GET MENU ITEMS (MERGED VERSION)
 ===================================== */
 
 router.get("/:messId", async (req, res) => {
@@ -129,55 +144,38 @@ router.get("/:messId", async (req, res) => {
 
     console.log("📦 Fetching menu for mess:", messId);
 
-    /* -----------------------------
-       Build query (available filter)
-    ----------------------------- */
-
     const query = { mess_id: messId };
 
     if (req.query.available === "true") {
       query.available = true;
     }
 
-    /* -----------------------------
-       Try MenuItem collection
-    ----------------------------- */
-
-    const items = await MenuItem
-      .find(query)
-      .sort({ createdAt: 1 });
-
-    if (items.length > 0) {
-
-      console.log("🍽 Menu loaded from MenuItem collection:", items.length);
-
-      return res.json(items);
-    }
-
-    /* -----------------------------
-       Fallback to Mess.menu
-    ----------------------------- */
+    const newItems = await MenuItem.find(query).sort({ createdAt: 1 });
 
     const mess = await Mess.findById(messId);
 
     if (!mess) {
       return res.status(404).json({
-        message:"Mess not found"
+        message: "Mess not found",
       });
     }
 
-    const fallbackItems = mess.menu?.items || [];
+    const oldItems = mess.menu?.items || [];
 
-    console.log("🍽 Menu loaded from Mess model:", fallbackItems.length);
+    const mergedMenu = [...oldItems, ...newItems];
 
-    res.json(fallbackItems);
+    console.log("🍽 New menu items:", newItems.length);
+    console.log("🍽 Old menu items:", oldItems.length);
+    console.log("✅ Total menu items returned:", mergedMenu.length);
+
+    res.json(mergedMenu);
 
   } catch (error) {
 
     console.error("❌ Error fetching menu:", error);
 
     res.status(500).json({
-      message:"Failed to fetch menu"
+      message: "Failed to fetch menu",
     });
   }
 });
@@ -193,7 +191,7 @@ router.delete("/:itemId", authMiddleware, async (req, res) => {
 
     if (!item) {
       return res.status(404).json({
-        message:"Menu item not found"
+        message: "Menu item not found",
       });
     }
 
@@ -201,7 +199,7 @@ router.delete("/:itemId", authMiddleware, async (req, res) => {
 
     if (!mess || mess.owner_id.toString() !== req.user.id) {
       return res.status(403).json({
-        message:"You are not allowed to delete this item"
+        message: "You are not allowed to delete this item",
       });
     }
 
@@ -210,7 +208,7 @@ router.delete("/:itemId", authMiddleware, async (req, res) => {
     console.log("🗑 Menu item deleted:", req.params.itemId);
 
     res.json({
-      message:"Menu item deleted successfully"
+      message: "Menu item deleted successfully",
     });
 
   } catch (error) {
@@ -218,7 +216,7 @@ router.delete("/:itemId", authMiddleware, async (req, res) => {
     console.error("❌ Delete menu error:", error);
 
     res.status(500).json({
-      message:"Failed to delete menu item"
+      message: "Failed to delete menu item",
     });
   }
 });
@@ -234,7 +232,7 @@ router.put("/:itemId", authMiddleware, upload.single("image"), async (req, res) 
 
     if (!item) {
       return res.status(404).json({
-        message:"Menu item not found"
+        message: "Menu item not found",
       });
     }
 
@@ -242,7 +240,7 @@ router.put("/:itemId", authMiddleware, upload.single("image"), async (req, res) 
 
     if (!mess || mess.owner_id.toString() !== req.user.id) {
       return res.status(403).json({
-        message:"You are not allowed to update this item"
+        message: "You are not allowed to update this item",
       });
     }
 
@@ -261,7 +259,7 @@ router.put("/:itemId", authMiddleware, upload.single("image"), async (req, res) 
     const updatedItem = await MenuItem.findByIdAndUpdate(
       req.params.itemId,
       updateData,
-      { new:true }
+      { new: true }
     );
 
     console.log("✏️ Menu item updated:", updatedItem?.name);
@@ -273,7 +271,7 @@ router.put("/:itemId", authMiddleware, upload.single("image"), async (req, res) 
     console.error("❌ Update menu error:", error);
 
     res.status(500).json({
-      message:"Failed to update menu item"
+      message: "Failed to update menu item",
     });
   }
 });
@@ -289,7 +287,7 @@ router.patch("/:itemId/availability", authMiddleware, async (req, res) => {
 
     if (!item) {
       return res.status(404).json({
-        message:"Menu item not found"
+        message: "Menu item not found",
       });
     }
 
@@ -297,7 +295,7 @@ router.patch("/:itemId/availability", authMiddleware, async (req, res) => {
 
     if (!mess || mess.owner_id.toString() !== req.user.id) {
       return res.status(403).json({
-        message:"You are not allowed to modify this item"
+        message: "You are not allowed to modify this item",
       });
     }
 
@@ -312,7 +310,7 @@ router.patch("/:itemId/availability", authMiddleware, async (req, res) => {
     console.error("❌ Toggle availability error:", error);
 
     res.status(500).json({
-      message:"Failed to update availability"
+      message: "Failed to update availability",
     });
   }
 });
