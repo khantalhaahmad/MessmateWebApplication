@@ -8,39 +8,43 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 /* ============================================================
-   ✅ MAIN ROUTE: Get Owner Dashboard Stats (WITH messId FIX)
-   ============================================================ */
+   GET OWNER DASHBOARD + ANALYTICS
+============================================================ */
 
 router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
   try {
+
     const { ownerId } = req.params;
 
-    console.log("📊 Owner stats route hit for ID:", ownerId);
+    console.log("Owner stats route hit:", ownerId);
 
     /* -----------------------------
-       1️⃣ Find owner's messes
+       1. Find messes
     ------------------------------*/
 
     const messes = await Mess.find({
       $or: [
         { owner_id: ownerId },
-        { owner_id: new mongoose.Types.ObjectId(ownerId) }
+        { owner_id: mongoose.Types.ObjectId.isValid(ownerId)
+            ? new mongoose.Types.ObjectId(ownerId)
+            : ownerId }
       ]
     });
 
-    console.log(`✅ Found ${messes.length} mess(es) for owner ${ownerId}`);
-
-    /* -----------------------------
-       2️⃣ No mess case
-    ------------------------------*/
+    console.log("Messes found:", messes.length);
 
     if (!messes.length) {
       return res.json({
         messId: null,
+        ordersToday: 0,
+        revenueToday: 0,
+        customersToday: 0,
         totalOrders: 0,
         totalRevenue: 0,
+        averageOrderValue: 0,
         activeCustomers: 0,
         avgRating: 0,
+        topItems: [],
         weeklyOrders: Array(7).fill(0),
         monthlyRevenue: Array(4).fill(0),
         recentOrders: []
@@ -48,21 +52,18 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
     }
 
     /* -----------------------------
-       3️⃣ Extract mess IDs
+       2. Extract mess IDs
     ------------------------------*/
 
     const messObjectIds = messes.map(m => m._id);
     const messNumericIds = messes
-      .map(m => (m.mess_id ? Number(m.mess_id) : null))
+      .map(m => Number(m.mess_id))
       .filter(id => !isNaN(id));
 
-    // 🔥 IMPORTANT FOR ANDROID
     const messId = messObjectIds[0].toString();
 
-    console.log("🏠 Primary messId:", messId);
-
     /* -----------------------------
-       4️⃣ Fetch orders
+       3. Fetch orders
     ------------------------------*/
 
     const orders = await Order.find({
@@ -71,12 +72,12 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
         { mess_id: { $in: messObjectIds.map(id => id.toString()) } },
         { mess_id: { $in: messObjectIds } }
       ]
-    });
+    }).lean();
 
-    console.log(`📦 Found ${orders.length} order(s)`);
+    console.log("Orders found:", orders.length);
 
     /* -----------------------------
-       5️⃣ Calculate stats
+       4. TOTAL STATS
     ------------------------------*/
 
     const totalOrders = orders.length;
@@ -86,12 +87,70 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       0
     );
 
+    const averageOrderValue =
+      totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
     const activeCustomers = new Set(
       orders.map(o => o.user_id?.toString())
     ).size;
 
     /* -----------------------------
-       6️⃣ Fetch reviews
+       5. TODAY STATS
+    ------------------------------*/
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todaysOrders = orders.filter(o => {
+      const d = new Date(o.createdAt);
+      return d >= today;
+    });
+
+    const ordersToday = todaysOrders.length;
+
+    const revenueToday = todaysOrders.reduce(
+      (sum, o) => sum + (o.total_price || 0),
+      0
+    );
+
+    const customersToday = new Set(
+      todaysOrders.map(o => o.user_id?.toString())
+    ).size;
+
+    /* -----------------------------
+       6. TOP SELLING ITEMS
+    ------------------------------*/
+
+    const itemCount = {};
+
+    orders.forEach(order => {
+
+      if (!order.items) return;
+
+      order.items.forEach(item => {
+
+        const name = item.name;
+
+        if (!itemCount[name]) {
+          itemCount[name] = 0;
+        }
+
+        itemCount[name] += item.quantity || 1;
+
+      });
+
+    });
+
+    const topItems = Object.entries(itemCount)
+      .map(([name, count]) => ({
+        name,
+        count
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    /* -----------------------------
+       7. REVIEWS
     ------------------------------*/
 
     const reviewMessIds = [
@@ -103,37 +162,38 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       mess_id: { $in: reviewMessIds }
     });
 
-    console.log(`⭐ Found ${reviews.length} review(s)`);
-
-    /* -----------------------------
-       7️⃣ Average rating
-    ------------------------------*/
-
     const avgRating =
       reviews.length > 0
         ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
         : 0;
 
     /* -----------------------------
-       8️⃣ Weekly + Monthly stats
+       8. WEEKLY + MONTHLY STATS
     ------------------------------*/
 
     const weeklyOrders = Array(7).fill(0);
     const monthlyRevenue = Array(4).fill(0);
 
     orders.forEach(o => {
+
       const d = new Date(o.createdAt);
 
       if (!isNaN(d)) {
+
         weeklyOrders[d.getDay()]++;
 
-        monthlyRevenue[Math.floor((d.getDate() - 1) / 7)] +=
-          o.total_price || 0;
+        const weekIndex = Math.floor((d.getDate() - 1) / 7);
+
+        if (weekIndex >= 0 && weekIndex < 4) {
+          monthlyRevenue[weekIndex] += o.total_price || 0;
+        }
+
       }
+
     });
 
     /* -----------------------------
-       9️⃣ Recent orders
+       9. RECENT ORDERS
     ------------------------------*/
 
     const recentOrders = orders
@@ -142,28 +202,32 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       .map(o => ({
         orderId: o._id,
         messId: o.mess_id,
-        messName:
-          messes.find(
-            m =>
-              m.mess_id?.toString() === o.mess_id?.toString() ||
-              m._id?.toString() === o.mess_id?.toString()
-          )?.name || "Unknown Mess",
         items: o.items || [],
         totalPrice: o.total_price || 0,
         status: o.status || "Pending"
       }));
 
     /* -----------------------------
-       🔟 Send response
+       10. RESPONSE
     ------------------------------*/
 
     res.json({
-      messId, // 🔥 REQUIRED FOR ANDROID MENU API
+
+      messId,
+
+      ordersToday,
+      revenueToday,
+      customersToday,
 
       totalOrders,
       totalRevenue,
+      averageOrderValue,
+
       activeCustomers,
+
       avgRating: Number(avgRating.toFixed(1)),
+
+      topItems,
 
       weeklyOrders,
       monthlyRevenue,
@@ -172,43 +236,42 @@ router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
       monthlyLabels: ["Week 1","Week 2","Week 3","Week 4"],
 
       recentOrders
+
     });
 
-    console.log("✅ Owner stats sent successfully");
+    console.log("Owner stats sent successfully");
 
   } catch (error) {
 
-    console.error("💥 Error generating stats:", error);
+    console.error("Error generating stats:", error);
 
     res.status(500).json({
       message: "Error generating stats",
       error: error.message
     });
+
   }
 });
 
 /* ============================================================
-   ✅ ADDITIONAL ROUTES
-   ============================================================ */
-
-/* -----------------------------
-   Owner Menu
-------------------------------*/
+   OWNER MENU
+============================================================ */
 
 router.get("/:ownerId/menu", authMiddleware, (req, res) => {
 
   res.json({
-    message: "✅ Owner menu route working",
+    message: "Owner menu route working",
     data: []
   });
 
 });
 
-/* -----------------------------
-   Owner Orders
-------------------------------*/
+/* ============================================================
+   OWNER ORDERS
+============================================================ */
 
 router.get("/:ownerId/orders", authMiddleware, async (req, res) => {
+
   try {
 
     const { ownerId } = req.params;
@@ -216,7 +279,9 @@ router.get("/:ownerId/orders", authMiddleware, async (req, res) => {
     const messes = await Mess.find({
       $or: [
         { owner_id: ownerId },
-        { owner_id: new mongoose.Types.ObjectId(ownerId) }
+        { owner_id: mongoose.Types.ObjectId.isValid(ownerId)
+            ? new mongoose.Types.ObjectId(ownerId)
+            : ownerId }
       ]
     });
 
@@ -247,7 +312,7 @@ router.get("/:ownerId/orders", authMiddleware, async (req, res) => {
 
   } catch (error) {
 
-    console.error("💥 Error fetching owner orders:", error);
+    console.error("Error fetching owner orders:", error);
 
     res.status(500).json({
       message: "Error fetching owner orders",
@@ -255,13 +320,15 @@ router.get("/:ownerId/orders", authMiddleware, async (req, res) => {
     });
 
   }
+
 });
 
-/* -----------------------------
-   Owner Reviews
-------------------------------*/
+/* ============================================================
+   OWNER REVIEWS
+============================================================ */
 
 router.get("/:ownerId/reviews", authMiddleware, async (req, res) => {
+
   try {
 
     const { ownerId } = req.params;
@@ -286,6 +353,7 @@ router.get("/:ownerId/reviews", authMiddleware, async (req, res) => {
     });
 
   }
+
 });
 
 export default router;
