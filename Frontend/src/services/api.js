@@ -11,8 +11,7 @@ const isLocal =
 
 const baseURL = isLocal
   ? import.meta.env.VITE_API_URL || "http://localhost:4000"
-  : import.meta.env.VITE_API_URL_PROD || "https://messmate-backend.onrender.com";
-
+  : import.meta.env.VITE_API_URL_PROD || "https://messmatewebapplication.onrender.com";
 /* ============================================================
    🧩 AXIOS INSTANCE
    ============================================================ */
