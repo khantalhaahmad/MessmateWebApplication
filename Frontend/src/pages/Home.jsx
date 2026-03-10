@@ -21,7 +21,7 @@ const Home = () => {
   useEffect(() => {
     const fetchMesses = async () => {
       try {
-        const res = await api.get("/messes");
+        const res = await api.get("/mess");
         const messes =
           Array.isArray(res.data) ? res.data :
           Array.isArray(res.data?.data) ? res.data.data :
