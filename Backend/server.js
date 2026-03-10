@@ -1,4 +1,4 @@
-// ✅ Backend/server.js — Socket.io + Firebase + Debug Ready
+// Backend/server.js — Production Ready (Socket + Firebase + Debug)
 
 import express from "express";
 import dotenv from "dotenv";
@@ -15,15 +15,16 @@ import path from "path";
 import fs from "fs";
 
 /* ============================================================
-   🧩 Load Environment + Connect DB
+   ENV + DATABASE
 ============================================================ */
+
 dotenv.config();
 connectDB();
 
 const app = express();
 
 /* ============================================================
-   📂 Ensure uploads folder exists
+   UPLOADS FOLDER
 ============================================================ */
 
 const uploadsPath = path.join(process.cwd(), "uploads");
@@ -33,13 +34,11 @@ if (!fs.existsSync(uploadsPath)) {
   console.log("📁 uploads folder created");
 }
 
-/* serve uploaded images */
-
 app.use("/uploads", express.static(uploadsPath));
 console.log("🖼 Uploads served at /uploads");
 
 /* ============================================================
-   🧩 Core Middleware
+   MIDDLEWARE
 ============================================================ */
 
 app.set("trust proxy", 1);
@@ -57,7 +56,7 @@ app.use(
 );
 
 /* ============================================================
-   🚦 Rate Limiter
+   RATE LIMIT
 ============================================================ */
 
 const limiter = rateLimit({
@@ -70,7 +69,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 /* ============================================================
-   🌐 CORS Configuration
+   CORS
 ============================================================ */
 
 const allowedOrigins = new Set([
@@ -82,15 +81,19 @@ const allowedOrigins = new Set([
 app.use(
   cors({
     origin: (origin, cb) => {
+
       if (!origin) return cb(null, true);
 
       if (allowedOrigins.has(origin)) return cb(null, true);
 
       try {
+
         const url = new URL(origin);
+
         if (url.hostname.endsWith(".vercel.app")) {
           return cb(null, true);
         }
+
       } catch (err) {
         console.warn("⚠️ Invalid origin:", origin);
       }
@@ -99,15 +102,17 @@ app.use(
     },
 
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    methods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"],
+
+    allowedHeaders: ["Content-Type","Authorization"],
   })
 );
 
 app.options("*", cors());
 
 /* ============================================================
-   🛣️ Import Routes
+   ROUTES
 ============================================================ */
 
 import authRoutes from "./routes/auth.js";
@@ -123,31 +128,9 @@ import messRequestRoutes from "./routes/messRequestsRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-/* ============================================================
-   🧠 Health + Root
-============================================================ */
-
-app.get("/", (_req, res) => {
-  res.send("✅ MessMate Backend Root Running");
-});
-
-app.get("/health", (_req, res) => {
-  res.json({
-    ok: true,
-    db: mongoose.connection.name,
-    host: mongoose.connection.host,
-    env: process.env.NODE_ENV || "development",
-  });
-});
-
-/* ============================================================
-   ✅ API Routes
-============================================================ */
-
 console.log("✅ Registering all API routes...");
 
 app.use("/api/auth", authRoutes);
-
 app.use("/api/admin", adminRoutes);
 
 app.use("/api/messes", messRoutes);
@@ -172,106 +155,168 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/payment", paymentRoutes);
 
-console.log("✅ All routes mounted successfully");
-console.log("✅ Auth routes mounted at /api/auth");
+console.log("✅ Routes mounted");
 
 /* ============================================================
-   🧪 DEBUG: Verify Users Collection
+   HEALTH CHECK
+============================================================ */
+
+app.get("/", (_req,res)=>{
+  res.send("✅ MessMate Backend Running");
+});
+
+app.get("/health", (_req,res)=>{
+
+  res.json({
+    ok:true,
+    db:mongoose.connection.name,
+    host:mongoose.connection.host,
+    env:process.env.NODE_ENV || "development"
+  });
+
+});
+
+/* ============================================================
+   DEBUG USERS
 ============================================================ */
 
 import User from "./models/User.js";
 
-app.get("/debug-users", async (_req, res) => {
-  try {
-    const users = await User.find({}, { email: 1, name: 1, role: 1 });
+app.get("/debug-users", async (_req,res)=>{
+
+  try{
+
+    const users = await User.find({},{
+      email:1,
+      name:1,
+      role:1
+    });
 
     res.json({
-      success: true,
-      count: users.length,
-      db: mongoose.connection.name,
-      users,
+      success:true,
+      count:users.length,
+      users
     });
 
-  } catch (err) {
+  }catch(err){
 
-    console.error("❌ Debug Error:", err);
+    console.error("Debug error",err);
 
     res.status(500).json({
-      success: false,
-      message: "Debug route failed",
-      error: err.message,
+      success:false,
+      error:err.message
     });
+
   }
+
 });
 
 /* ============================================================
-   ⚡ Socket.io Setup
+   SOCKET.IO
 ============================================================ */
 
 const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: [...allowedOrigins],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+const io = new Server(httpServer,{
+  cors:{
+    origin:[...allowedOrigins],
+    methods:["GET","POST"],
+    credentials:true
+  }
 });
 
-app.set("io", io);
+app.set("io",io);
 
-io.on("connection", (socket) => {
+io.on("connection",(socket)=>{
 
-  console.log("🔗 Socket connected:", socket.id);
+  console.log("🔗 Socket connected:",socket.id);
 
-  socket.on("join_room", (roomId) => {
-    socket.join(roomId);
-    console.log(`✅ Joined room: ${roomId}`);
+  /* -----------------------------
+     OWNER ROOM (VENDOR)
+  ----------------------------- */
+
+  socket.on("join_owner",(ownerId)=>{
+
+    const room = `owner_${ownerId}`;
+
+    socket.join(room);
+
+    console.log(`👨‍🍳 Vendor joined: ${room}`);
+
   });
 
-  socket.on("disconnect", () => {
-    console.log("❌ Socket disconnected:", socket.id);
+  /* -----------------------------
+     USER ROOM
+  ----------------------------- */
+
+  socket.on("join_user",(userId)=>{
+
+    const room = `user_${userId}`;
+
+    socket.join(room);
+
+    console.log(`👤 User joined: ${room}`);
+
+  });
+
+  /* -----------------------------
+     DELIVERY ROOM
+  ----------------------------- */
+
+  socket.on("join_delivery",(deliveryId)=>{
+
+    const room = `delivery_${deliveryId}`;
+
+    socket.join(room);
+
+    console.log(`🛵 Delivery joined: ${room}`);
+
+  });
+
+  socket.on("disconnect",()=>{
+
+    console.log("❌ Socket disconnected:",socket.id);
+
   });
 
 });
 
 /* ============================================================
-   🧯 404 + Error Handler
+   ERROR HANDLER
 ============================================================ */
 
-app.use((req, res) => {
+app.use((req,res)=>{
 
-  console.warn(`⚠️ 404 Not Found: ${req.method} ${req.originalUrl}`);
+  console.warn(`⚠️ 404 ${req.method} ${req.originalUrl}`);
 
   res.status(404).json({
-    success: false,
-    message: "Route not found",
+    success:false,
+    message:"Route not found"
   });
 
 });
 
-app.use((err, _req, res, _next) => {
+app.use((err,_req,res,_next)=>{
 
-  console.error("💥 Server error:", err);
+  console.error("💥 Server error:",err);
 
   res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal server error",
+    success:false,
+    message:err.message || "Internal server error"
   });
 
 });
 
 /* ============================================================
-   ⚡ Start Server
+   START SERVER
 ============================================================ */
 
 const PORT = process.env.PORT || 4000;
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT,()=>{
 
-  console.log(`🚀 MessMate Backend running on port ${PORT}`);
-  console.log(`🌍 Login endpoint: http://localhost:${PORT}/api/auth/login`);
-  console.log(`🔍 Debug users: http://localhost:${PORT}/debug-users`);
-  console.log(`🖼 Image path: http://localhost:${PORT}/uploads/...`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 http://localhost:${PORT}`);
+  console.log(`🔍 Debug users: /debug-users`);
 
 });

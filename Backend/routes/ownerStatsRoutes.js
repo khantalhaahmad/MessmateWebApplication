@@ -8,352 +8,317 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 /* ============================================================
-   GET OWNER DASHBOARD + ANALYTICS
+   OWNER DASHBOARD STATS
 ============================================================ */
 
-router.get("/:ownerId/stats", authMiddleware, async (req, res) => {
-  try {
-
-    const { ownerId } = req.params;
-
-    console.log("Owner stats route hit:", ownerId);
-
-    /* -----------------------------
-       1. Find messes
-    ------------------------------*/
-
-    const messes = await Mess.find({
-      $or: [
-        { owner_id: ownerId },
-        { owner_id: mongoose.Types.ObjectId.isValid(ownerId)
-            ? new mongoose.Types.ObjectId(ownerId)
-            : ownerId }
-      ]
-    });
-
-    console.log("Messes found:", messes.length);
-
-    if (!messes.length) {
-      return res.json({
-        messId: null,
-        ordersToday: 0,
-        revenueToday: 0,
-        customersToday: 0,
-        totalOrders: 0,
-        totalRevenue: 0,
-        averageOrderValue: 0,
-        activeCustomers: 0,
-        avgRating: 0,
-        topItems: [],
-        weeklyOrders: Array(7).fill(0),
-        monthlyRevenue: Array(4).fill(0),
-        recentOrders: []
-      });
-    }
+router.get("/:ownerId/stats", authMiddleware, async (req,res)=>{
 
-    /* -----------------------------
-       2. Extract mess IDs
-    ------------------------------*/
+try{
 
-    const messObjectIds = messes.map(m => m._id);
-    const messNumericIds = messes
-      .map(m => Number(m.mess_id))
-      .filter(id => !isNaN(id));
+const {ownerId} = req.params
 
-    const messId = messObjectIds[0].toString();
-
-    /* -----------------------------
-       3. Fetch orders
-    ------------------------------*/
-
-    const orders = await Order.find({
-      $or: [
-        { mess_id: { $in: messNumericIds } },
-        { mess_id: { $in: messObjectIds.map(id => id.toString()) } },
-        { mess_id: { $in: messObjectIds } }
-      ]
-    }).lean();
-
-    console.log("Orders found:", orders.length);
+/* -----------------------------
+   FIND OWNER MESSES
+----------------------------- */
 
-    /* -----------------------------
-       4. TOTAL STATS
-    ------------------------------*/
+const messes = await Mess.find({
+owner_id: ownerId
+})
 
-    const totalOrders = orders.length;
+if(!messes.length){
 
-    const totalRevenue = orders.reduce(
-      (sum, o) => sum + (o.total_price || 0),
-      0
-    );
+return res.json({
 
-    const averageOrderValue =
-      totalOrders > 0 ? totalRevenue / totalOrders : 0;
+messId:null,
 
-    const activeCustomers = new Set(
-      orders.map(o => o.user_id?.toString())
-    ).size;
+ordersToday:0,
+revenueToday:0,
+customersToday:0,
 
-    /* -----------------------------
-       5. TODAY STATS
-    ------------------------------*/
+totalOrders:0,
+totalRevenue:0,
+averageOrderValue:0,
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+activeCustomers:0,
 
-    const todaysOrders = orders.filter(o => {
-      const d = new Date(o.createdAt);
-      return d >= today;
-    });
+avgRating:0,
 
-    const ordersToday = todaysOrders.length;
+topItems:[],
 
-    const revenueToday = todaysOrders.reduce(
-      (sum, o) => sum + (o.total_price || 0),
-      0
-    );
+weeklyOrders:Array(7).fill(0),
+monthlyRevenue:Array(4).fill(0),
 
-    const customersToday = new Set(
-      todaysOrders.map(o => o.user_id?.toString())
-    ).size;
+recentOrders:[]
+})
 
-    /* -----------------------------
-       6. TOP SELLING ITEMS
-    ------------------------------*/
+}
 
-    const itemCount = {};
+/* -----------------------------
+   MESS IDS
+----------------------------- */
 
-    orders.forEach(order => {
+const messIds = messes.map(m => m._id.toString())
 
-      if (!order.items) return;
+/* -----------------------------
+   FETCH ORDERS
+----------------------------- */
 
-      order.items.forEach(item => {
+const orders = await Order.find({
+mess_id: { $in: messIds }
+}).lean()
 
-        const name = item.name;
+/* -----------------------------
+   TOTAL STATS
+----------------------------- */
 
-        if (!itemCount[name]) {
-          itemCount[name] = 0;
-        }
+const totalOrders = orders.length
 
-        itemCount[name] += item.quantity || 1;
+const totalRevenue = orders.reduce(
+(sum,o)=> sum + (o.total_price || 0)
+,0)
 
-      });
+const averageOrderValue =
+totalOrders > 0 ? totalRevenue / totalOrders : 0
 
-    });
+const activeCustomers = new Set(
+orders.map(o => o.user_id?.toString())
+).size
 
-    const topItems = Object.entries(itemCount)
-      .map(([name, count]) => ({
-        name,
-        count
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+/* -----------------------------
+   TODAY STATS
+----------------------------- */
 
-    /* -----------------------------
-       7. REVIEWS
-    ------------------------------*/
+const today = new Date()
+today.setHours(0,0,0,0)
 
-    const reviewMessIds = [
-      ...messObjectIds.map(id => id.toString()),
-      ...messNumericIds.map(id => id.toString())
-    ];
+const todaysOrders = orders.filter(o => {
+const d = new Date(o.createdAt)
+return d >= today
+})
 
-    const reviews = await Review.find({
-      mess_id: { $in: reviewMessIds }
-    });
+const ordersToday = todaysOrders.length
 
-    const avgRating =
-      reviews.length > 0
-        ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-        : 0;
+const revenueToday = todaysOrders.reduce(
+(sum,o)=> sum + (o.total_price || 0)
+,0)
 
-    /* -----------------------------
-       8. WEEKLY + MONTHLY STATS
-    ------------------------------*/
+const customersToday = new Set(
+todaysOrders.map(o=>o.user_id?.toString())
+).size
 
-    const weeklyOrders = Array(7).fill(0);
-    const monthlyRevenue = Array(4).fill(0);
+/* -----------------------------
+   TOP SELLING ITEMS
+----------------------------- */
 
-    orders.forEach(o => {
+const itemCount = {}
 
-      const d = new Date(o.createdAt);
+orders.forEach(order => {
 
-      if (!isNaN(d)) {
+(order.items || []).forEach(item => {
 
-        weeklyOrders[d.getDay()]++;
+const name = item.name
 
-        const weekIndex = Math.floor((d.getDate() - 1) / 7);
+if(!itemCount[name]){
+itemCount[name] = 0
+}
 
-        if (weekIndex >= 0 && weekIndex < 4) {
-          monthlyRevenue[weekIndex] += o.total_price || 0;
-        }
+itemCount[name] += item.quantity || 1
 
-      }
+})
 
-    });
+})
 
-    /* -----------------------------
-       9. RECENT ORDERS
-    ------------------------------*/
+const topItems = Object.entries(itemCount)
+.map(([name,count])=>({name,count}))
+.sort((a,b)=>b.count-a.count)
+.slice(0,5)
 
-    const recentOrders = orders
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5)
-      .map(o => ({
-        orderId: o._id,
-        messId: o.mess_id,
-        items: o.items || [],
-        totalPrice: o.total_price || 0,
-        status: o.status || "Pending"
-      }));
+/* -----------------------------
+   REVIEWS
+----------------------------- */
 
-    /* -----------------------------
-       10. RESPONSE
-    ------------------------------*/
+const reviews = await Review.find({
+mess_id: { $in: messIds }
+})
 
-    res.json({
+const avgRating =
+reviews.length
+? reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length
+: 0
 
-      messId,
+/* -----------------------------
+   WEEKLY + MONTHLY
+----------------------------- */
 
-      ordersToday,
-      revenueToday,
-      customersToday,
+const weeklyOrders = Array(7).fill(0)
+const monthlyRevenue = Array(4).fill(0)
 
-      totalOrders,
-      totalRevenue,
-      averageOrderValue,
+orders.forEach(o=>{
 
-      activeCustomers,
+const d = new Date(o.createdAt)
 
-      avgRating: Number(avgRating.toFixed(1)),
+if(!isNaN(d)){
 
-      topItems,
+weeklyOrders[d.getDay()]++
 
-      weeklyOrders,
-      monthlyRevenue,
+const weekIndex = Math.floor((d.getDate()-1)/7)
 
-      weeklyLabels: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
-      monthlyLabels: ["Week 1","Week 2","Week 3","Week 4"],
+if(weekIndex>=0 && weekIndex<4){
 
-      recentOrders
+monthlyRevenue[weekIndex]+=o.total_price || 0
 
-    });
+}
 
-    console.log("Owner stats sent successfully");
+}
 
-  } catch (error) {
+})
 
-    console.error("Error generating stats:", error);
+/* -----------------------------
+   RECENT ORDERS
+----------------------------- */
 
-    res.status(500).json({
-      message: "Error generating stats",
-      error: error.message
-    });
+const recentOrders = orders
+.sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt))
+.slice(0,5)
+.map(o=>({
 
-  }
-});
+orderId:o._id,
+
+messId:o.mess_id,
+
+items:o.items || [],
+
+totalPrice:o.total_price || 0,
+
+status:o.status || "pending",
+
+createdAt:o.createdAt
+
+}))
+
+/* -----------------------------
+   RESPONSE
+----------------------------- */
+
+res.json({
+
+messId:messIds[0],
+
+ordersToday,
+revenueToday,
+customersToday,
+
+totalOrders,
+totalRevenue,
+averageOrderValue,
+
+activeCustomers,
+
+avgRating:Number(avgRating.toFixed(1)),
+
+topItems,
+
+weeklyOrders,
+monthlyRevenue,
+
+weeklyLabels:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+
+monthlyLabels:["Week 1","Week 2","Week 3","Week 4"],
+
+recentOrders
+
+})
+
+}catch(err){
+
+console.error("Owner stats error:",err)
+
+res.status(500).json({
+success:false,
+message:"Error generating stats",
+error:err.message
+})
+
+}
+
+})
 
 /* ============================================================
-   OWNER MENU
+   OWNER ORDERS (WITH STATUS FILTER)
 ============================================================ */
 
-router.get("/:ownerId/menu", authMiddleware, (req, res) => {
+router.get("/:ownerId/orders", authMiddleware, async (req,res)=>{
 
-  res.json({
-    message: "Owner menu route working",
-    data: []
-  });
+try{
 
-});
+const {ownerId} = req.params
+const {status} = req.query
 
-/* ============================================================
-   OWNER ORDERS
-============================================================ */
+const messes = await Mess.find({ owner_id: ownerId })
 
-router.get("/:ownerId/orders", authMiddleware, async (req, res) => {
+const messIds = messes.map(m => m._id.toString())
 
-  try {
+let filter = { mess_id: { $in: messIds } }
 
-    const { ownerId } = req.params;
+if(status){
+filter.status = status
+}
 
-    const messes = await Mess.find({
-      $or: [
-        { owner_id: ownerId },
-        { owner_id: mongoose.Types.ObjectId.isValid(ownerId)
-            ? new mongoose.Types.ObjectId(ownerId)
-            : ownerId }
-      ]
-    });
+const orders = await Order.find(filter)
+.sort({createdAt:-1})
 
-    const messMap = {};
+res.json({
+success:true,
+orders
+})
 
-    messes.forEach(m => {
-      messMap[m.mess_id?.toString() || m._id.toString()] =
-        m.name || "Unnamed Mess";
-    });
+}catch(err){
 
-    const messIds = Object.keys(messMap);
+console.error("Owner orders error:",err)
 
-    const orders = await Order.find({
-      mess_id: { $in: messIds }
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
+res.status(500).json({
+success:false,
+message:"Error fetching orders",
+error:err.message
+})
 
-    const formattedOrders = orders.map(o => ({
-      _id: o._id,
-      mess_name: messMap[o.mess_id] || "Unknown Mess",
-      items: o.items || [],
-      total_price: o.total_price || 0,
-      status: o.status || "Pending"
-    }));
+}
 
-    res.json({ data: formattedOrders });
-
-  } catch (error) {
-
-    console.error("Error fetching owner orders:", error);
-
-    res.status(500).json({
-      message: "Error fetching owner orders",
-      error
-    });
-
-  }
-
-});
+})
 
 /* ============================================================
    OWNER REVIEWS
 ============================================================ */
 
-router.get("/:ownerId/reviews", authMiddleware, async (req, res) => {
+router.get("/:ownerId/reviews", authMiddleware, async (req,res)=>{
 
-  try {
+try{
 
-    const { ownerId } = req.params;
+const {ownerId} = req.params
 
-    const messes = await Mess.find({ owner_id: ownerId });
+const messes = await Mess.find({ owner_id: ownerId })
 
-    const messIds = messes.map(
-      m => m.mess_id?.toString() || m._id.toString()
-    );
+const messIds = messes.map(m => m._id.toString())
 
-    const reviews = await Review.find({
-      mess_id: { $in: messIds }
-    });
+const reviews = await Review.find({
+mess_id: { $in: messIds }
+})
 
-    res.json({ data: reviews });
+res.json({
+success:true,
+reviews
+})
 
-  } catch (error) {
+}catch(err){
 
-    res.status(500).json({
-      message: "Error fetching owner reviews",
-      error
-    });
+res.status(500).json({
+success:false,
+message:"Error fetching reviews",
+error:err.message
+})
 
-  }
+}
 
-});
+})
 
 export default router;
