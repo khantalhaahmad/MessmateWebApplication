@@ -12,7 +12,7 @@ import {
 import { signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
-import "../styles/auth.css";
+import "../styles/Auth.css";
 
 const AuthPage = ({ open, onClose }) => {
   const { login } = useContext(AuthContext);
