@@ -1,4 +1,3 @@
-// routes/OrderRoutes.js
 import express from "express";
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
@@ -75,6 +74,13 @@ if (!mess && mess_name) {
 mess = await Mess.findOne({ name:mess_name });
 }
 
+if(!mess){
+return res.status(404).json({
+success:false,
+message:"Mess not found"
+});
+}
+
 /* -----------------------------
    NORMALIZE ITEMS
 ----------------------------- */
@@ -94,9 +100,9 @@ const newOrder = await Order.create({
 
 user_id: dbUser._id,
 
-mess_id: mess?._id?.toString() || String(mess_id),
+mess_id: mess._id.toString(),
 
-mess_name: mess?.name || mess_name || "Unknown Mess",
+mess_name: mess.name,
 
 items: updatedItems,
 
@@ -111,6 +117,30 @@ orderExpiresAt: new Date(Date.now() + 60000)
 });
 
 console.log("New Order:", newOrder._id);
+
+/* ============================================================
+   SOCKET NOTIFY OWNER
+============================================================ */
+
+try {
+
+const io = req.app.get("io");
+
+const ownerId = mess.owner_id?.toString();
+
+if (io && ownerId) {
+
+io.to(`owner_${ownerId}`).emit("new_order", newOrder);
+
+console.log("Socket new_order emitted to:", ownerId);
+
+}
+
+}catch(err){
+
+console.log("Socket emit error:",err.message);
+
+}
 
 /* ============================================================
    AUTO CANCEL AFTER 60s
@@ -128,8 +158,6 @@ order.status = "cancelled";
 order.cancelledAt = new Date();
 
 await order.save();
-
-console.log("Auto cancelled order:",order._id);
 
 const io = req.app.get("io");
 
@@ -150,21 +178,12 @@ console.log("Auto cancel error:",err.message)
 },60000);
 
 /* ============================================================
-   NOTIFY OWNER
+   PUSH NOTIFICATION
 ============================================================ */
 
 try {
 
-const io = req.app.get("io");
-const ownerId = mess?.owner_id?.toString();
-
-if (io && ownerId) {
-
-io.to(`owner_${ownerId}`).emit("new_order", newOrder);
-
-}
-
-const owner = await User.findById(ownerId);
+const owner = await User.findById(mess.owner_id);
 
 if (owner?.fcmToken) {
 
@@ -173,7 +192,7 @@ await admin.messaging().send({
 token: owner.fcmToken,
 
 notification: {
-title:"New Order Received",
+title:"New Order",
 body:`₹${newOrder.total_price} order received`
 },
 
@@ -186,7 +205,7 @@ orderId:newOrder._id.toString()
 }
 
 }catch(e){
-console.log("Notification error",e.message)
+console.log("FCM error:",e.message)
 }
 
 res.status(201).json({
@@ -209,70 +228,39 @@ message:err.message
 });
 
 /* ============================================================
-   UPDATE ORDER STATUS
-============================================================ */
-
-router.patch("/:id/status", verifyToken, async (req,res)=>{
-
-try{
-
-const {status} = req.body;
-
-const order = await Order.findByIdAndUpdate(
-req.params.id,
-{ status },
-{ new:true }
-);
-
-if(!order){
-
-return res.status(404).json({
-success:false,
-message:"Order not found"
-})
-
-}
-
-/* notify user */
-
-const io = req.app.get("io");
-
-if(io){
-io.to(`user_${order.user_id}`).emit("order_status",order)
-}
-
-res.json({
-success:true,
-order
-})
-
-}catch(err){
-
-res.status(500).json({
-success:false,
-message:err.message
-})
-
-}
-
-})
-
-/* ============================================================
    ACCEPT ORDER
 ============================================================ */
 
 router.patch("/:id/accept", verifyToken, async (req,res)=>{
 
+try{
+
 const order = await Order.findByIdAndUpdate(
 req.params.id,
 {
 status:"accepted",
-acceptedAt:new Date()
+acceptedAt:new Date(),
+orderExpiresAt:null
 },
 {new:true}
 )
 
+if(!order){
+return res.status(404).json({success:false,message:"Order not found"})
+}
+
+const io = req.app.get("io");
+
+if(io){
+io.to(`user_${order.user_id}`).emit("order_status",order)
+io.to(`owner_${order.mess_id}`).emit("order_status",order)
+}
+
 res.json({success:true,order})
+
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
 
 })
 
@@ -281,6 +269,8 @@ res.json({success:true,order})
 ============================================================ */
 
 router.patch("/:id/reject", verifyToken, async (req,res)=>{
+
+try{
 
 const order = await Order.findByIdAndUpdate(
 req.params.id,
@@ -293,6 +283,10 @@ cancelledAt:new Date()
 
 res.json({success:true,order})
 
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
+
 })
 
 /* ============================================================
@@ -300,6 +294,8 @@ res.json({success:true,order})
 ============================================================ */
 
 router.patch("/:id/preparing", verifyToken, async (req,res)=>{
+
+try{
 
 const order = await Order.findByIdAndUpdate(
 req.params.id,
@@ -312,6 +308,10 @@ preparingAt:new Date()
 
 res.json({success:true,order})
 
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
+
 })
 
 /* ============================================================
@@ -319,6 +319,8 @@ res.json({success:true,order})
 ============================================================ */
 
 router.patch("/:id/ready", verifyToken, async (req,res)=>{
+
+try{
 
 const order = await Order.findByIdAndUpdate(
 req.params.id,
@@ -330,6 +332,60 @@ readyAt:new Date()
 )
 
 res.json({success:true,order})
+
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
+
+})
+
+/* ============================================================
+   ORDER PICKED (DELIVERY)
+============================================================ */
+
+router.patch("/:id/picked", verifyToken, async (req,res)=>{
+
+try{
+
+const order = await Order.findByIdAndUpdate(
+req.params.id,
+{
+status:"picked",
+pickedAt:new Date()
+},
+{new:true}
+)
+
+res.json({success:true,order})
+
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
+
+})
+
+/* ============================================================
+   ORDER DELIVERED
+============================================================ */
+
+router.patch("/:id/delivered", verifyToken, async (req,res)=>{
+
+try{
+
+const order = await Order.findByIdAndUpdate(
+req.params.id,
+{
+status:"delivered",
+deliveredAt:new Date()
+},
+{new:true}
+)
+
+res.json({success:true,order})
+
+}catch(err){
+res.status(500).json({success:false,message:err.message})
+}
 
 })
 
@@ -364,7 +420,10 @@ const {status} = req.query
 const messes = await Mess.find({owner_id:ownerId})
 const messIds = messes.map(m=>m._id.toString())
 
-let filter = { mess_id: { $in: messIds } }
+let filter = { 
+mess_id: { $in: messIds },
+status: { $ne:"cancelled" }
+}
 
 if(status){
 filter.status = status

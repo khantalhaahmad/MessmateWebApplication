@@ -14,6 +14,7 @@
 }
 
 /* ===== Image Section ===== */
+
 .messcard-image {
   position: relative;
   width: 100%;
@@ -28,6 +29,7 @@
 }
 
 /* ===== Rating Badge ===== */
+
 .messcard-rating {
   position: absolute;
   top: 10px;
@@ -40,7 +42,29 @@
   font-size: 0.9rem;
 }
 
+/* ===== Closed Badge ===== */
+
+.messcard-closed-tag {
+
+  position: absolute;
+
+  top: 10px;
+  left: 10px;
+
+  background: #e53935;
+  color: #fff;
+
+  padding: 4px 10px;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+}
+
 /* ===== Info Section ===== */
+
 .messcard-info {
   padding: 14px 16px;
 }
@@ -71,12 +95,26 @@
   border-radius: 8px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .messcard {
-    width: 90%;
-  }
+/* ===== Closed Restaurant Style ===== */
+
+.messcard-link.messcard-closed {
+
+  filter: grayscale(100%);
+  opacity: 0.65;
+
 }
+
+/* Disable hover animation for closed restaurant */
+
+.messcard-link.messcard-closed .messcard:hover {
+
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+}
+
+/* ===== Link wrapper ===== */
+
 .messcard-link {
   text-decoration: none;
   color: inherit;
@@ -87,6 +125,9 @@
   transform: scale(1.02);
   transition: transform 0.2s ease-in-out;
 }
+
+/* ===== Card Animation ===== */
+
 .messcard {
   border-radius: 16px;
   overflow: hidden;
@@ -148,3 +189,12 @@
   font-size: 0.9rem;
 }
 
+/* ===== Responsive ===== */
+
+@media (max-width: 768px) {
+
+  .messcard {
+    width: 90%;
+  }
+
+}

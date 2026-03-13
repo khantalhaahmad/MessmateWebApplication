@@ -15,21 +15,23 @@ router.get("/:ownerId/stats", authMiddleware, async (req,res)=>{
 
 try{
 
-const {ownerId} = req.params
+const {ownerId} = req.params;
 
-/* -----------------------------
+/* ============================================================
    FIND OWNER MESSES
------------------------------ */
+============================================================ */
 
 const messes = await Mess.find({
 owner_id: ownerId
-})
+}).lean();
 
 if(!messes.length){
 
 return res.json({
 
 messId:null,
+messName:"",
+isOpen:false,
 
 ordersToday:0,
 revenueToday:0,
@@ -49,135 +51,176 @@ weeklyOrders:Array(7).fill(0),
 monthlyRevenue:Array(4).fill(0),
 
 recentOrders:[]
-})
+
+});
 
 }
 
-/* -----------------------------
-   MESS IDS
------------------------------ */
+/* ============================================================
+   BASIC MESS INFO
+============================================================ */
 
-const messIds = messes.map(m => m._id.toString())
+const messIds = messes.map(m => m._id.toString());
 
-/* -----------------------------
-   FETCH ORDERS
------------------------------ */
+const messName = messes[0]?.name || "";
+const isOpen = messes[0]?.isOpen ?? true;
 
-const orders = await Order.find({
+/* ============================================================
+   FETCH DATA PARALLEL
+============================================================ */
+
+const [deliveredOrders, allOrders, reviews] = await Promise.all([
+
+Order.find({
+mess_id: { $in: messIds },
+status:"delivered"
+}).lean(),
+
+Order.find({
+mess_id: { $in: messIds },
+status:{ $ne:"cancelled" }
+}).lean(),
+
+Review.find({
 mess_id: { $in: messIds }
 }).lean()
 
-/* -----------------------------
+]);
+
+/* ============================================================
    TOTAL STATS
------------------------------ */
+============================================================ */
 
-const totalOrders = orders.length
+const totalOrders = allOrders.length;
 
-const totalRevenue = orders.reduce(
-(sum,o)=> sum + (o.total_price || 0)
-,0)
+const totalRevenue = deliveredOrders.reduce(
+(sum,o)=> sum + (o.total_price || 0),
+0
+);
 
 const averageOrderValue =
-totalOrders > 0 ? totalRevenue / totalOrders : 0
+totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
 const activeCustomers = new Set(
-orders.map(o => o.user_id?.toString())
-).size
+allOrders.map(o => o.user_id?.toString())
+).size;
 
-/* -----------------------------
+/* ============================================================
    TODAY STATS
------------------------------ */
+============================================================ */
 
-const today = new Date()
-today.setHours(0,0,0,0)
+const today = new Date();
+today.setHours(0,0,0,0);
 
-const todaysOrders = orders.filter(o => {
-const d = new Date(o.createdAt)
-return d >= today
-})
+const todaysDelivered = deliveredOrders.filter(o => {
+const d = new Date(o.createdAt);
+return d >= today;
+});
 
-const ordersToday = todaysOrders.length
+const todaysOrders = allOrders.filter(o => {
+const d = new Date(o.createdAt);
+return d >= today;
+});
 
-const revenueToday = todaysOrders.reduce(
-(sum,o)=> sum + (o.total_price || 0)
-,0)
+const ordersToday = todaysOrders.length;
+
+const revenueToday = todaysDelivered.reduce(
+(sum,o)=> sum + (o.total_price || 0),
+0
+);
 
 const customersToday = new Set(
 todaysOrders.map(o=>o.user_id?.toString())
-).size
+).size;
 
-/* -----------------------------
+/* ============================================================
    TOP SELLING ITEMS
------------------------------ */
+============================================================ */
 
-const itemCount = {}
+const itemCount = {};
 
-orders.forEach(order => {
+deliveredOrders.forEach(order => {
 
 (order.items || []).forEach(item => {
 
-const name = item.name
+const name = item.name;
 
 if(!itemCount[name]){
-itemCount[name] = 0
+itemCount[name] = 0;
 }
 
-itemCount[name] += item.quantity || 1
+itemCount[name] += item.quantity || 1;
 
-})
+});
 
-})
+});
 
 const topItems = Object.entries(itemCount)
 .map(([name,count])=>({name,count}))
 .sort((a,b)=>b.count-a.count)
-.slice(0,5)
+.slice(0,5);
 
-/* -----------------------------
+/* ============================================================
    REVIEWS
------------------------------ */
-
-const reviews = await Review.find({
-mess_id: { $in: messIds }
-})
+============================================================ */
 
 const avgRating =
 reviews.length
 ? reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length
-: 0
+: 0;
 
-/* -----------------------------
-   WEEKLY + MONTHLY
------------------------------ */
+/* ============================================================
+   WEEKLY + MONTHLY GRAPH
+============================================================ */
 
-const weeklyOrders = Array(7).fill(0)
-const monthlyRevenue = Array(4).fill(0)
+const weeklyOrders = Array(7).fill(0);
+const monthlyRevenue = Array(4).fill(0);
 
-orders.forEach(o=>{
+const now = new Date();
 
-const d = new Date(o.createdAt)
+const startOfWeek = new Date(now);
+startOfWeek.setDate(now.getDate() - now.getDay());
+startOfWeek.setHours(0,0,0,0);
+
+/* ===== WEEKLY ORDERS (ALL ORDERS FOR GRAPH) ===== */
+
+allOrders.forEach(o=>{
+
+const d = new Date(o.createdAt);
+
+if(!isNaN(d) && d >= startOfWeek){
+
+weeklyOrders[d.getDay()]++;
+
+}
+
+});
+
+/* ===== MONTHLY REVENUE (DELIVERED ORDERS) ===== */
+
+deliveredOrders.forEach(o=>{
+
+const d = new Date(o.createdAt);
 
 if(!isNaN(d)){
 
-weeklyOrders[d.getDay()]++
-
-const weekIndex = Math.floor((d.getDate()-1)/7)
+const weekIndex = Math.floor((d.getDate()-1)/7);
 
 if(weekIndex>=0 && weekIndex<4){
 
-monthlyRevenue[weekIndex]+=o.total_price || 0
+monthlyRevenue[weekIndex]+=o.total_price || 0;
 
 }
 
 }
 
-})
+});
 
-/* -----------------------------
+/* ============================================================
    RECENT ORDERS
------------------------------ */
+============================================================ */
 
-const recentOrders = orders
+const recentOrders = allOrders
 .sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt))
 .slice(0,5)
 .map(o=>({
@@ -194,15 +237,17 @@ status:o.status || "pending",
 
 createdAt:o.createdAt
 
-}))
+}));
 
-/* -----------------------------
+/* ============================================================
    RESPONSE
------------------------------ */
+============================================================ */
 
 res.json({
 
 messId:messIds[0],
+messName,
+isOpen,
 
 ordersToday,
 revenueToday,
@@ -227,24 +272,24 @@ monthlyLabels:["Week 1","Week 2","Week 3","Week 4"],
 
 recentOrders
 
-})
+});
 
 }catch(err){
 
-console.error("Owner stats error:",err)
+console.error("Owner stats error:",err);
 
 res.status(500).json({
 success:false,
 message:"Error generating stats",
 error:err.message
-})
+});
 
 }
 
-})
+});
 
 /* ============================================================
-   OWNER ORDERS (WITH STATUS FILTER)
+   OWNER ORDERS
 ============================================================ */
 
 router.get("/:ownerId/orders", authMiddleware, async (req,res)=>{
@@ -254,18 +299,29 @@ try{
 const {ownerId} = req.params
 const {status} = req.query
 
+console.log("========== ORDER FETCH DEBUG ==========");
+console.log("OwnerId:", ownerId);
+console.log("Status filter:", status);
+
 const messes = await Mess.find({ owner_id: ownerId })
 
 const messIds = messes.map(m => m._id.toString())
 
-let filter = { mess_id: { $in: messIds } }
+let filter = { 
+mess_id: { $in: messIds },
+status:{ $ne:"cancelled" }
+}
 
 if(status){
 filter.status = status
 }
 
+console.log("Mongo filter:", filter);
+
 const orders = await Order.find(filter)
 .sort({createdAt:-1})
+
+console.log("Orders returned:", orders.length);
 
 res.json({
 success:true,
@@ -274,7 +330,7 @@ orders
 
 }catch(err){
 
-console.error("Owner orders error:",err)
+console.error("Owner orders error:",err);
 
 res.status(500).json({
 success:false,
@@ -294,20 +350,20 @@ router.get("/:ownerId/reviews", authMiddleware, async (req,res)=>{
 
 try{
 
-const {ownerId} = req.params
+const {ownerId} = req.params;
 
-const messes = await Mess.find({ owner_id: ownerId })
+const messes = await Mess.find({ owner_id: ownerId });
 
-const messIds = messes.map(m => m._id.toString())
+const messIds = messes.map(m => m._id.toString());
 
 const reviews = await Review.find({
 mess_id: { $in: messIds }
-})
+});
 
 res.json({
 success:true,
 reviews
-})
+});
 
 }catch(err){
 
@@ -315,10 +371,10 @@ res.status(500).json({
 success:false,
 message:"Error fetching reviews",
 error:err.message
-})
+});
 
 }
 
-})
+});
 
 export default router;

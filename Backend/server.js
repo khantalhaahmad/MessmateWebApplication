@@ -9,7 +9,6 @@ import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import admin from "./config/firebaseAdmin.js";
 import mongoose from "mongoose";
 import path from "path";
 import fs from "fs";
@@ -35,7 +34,6 @@ if (!fs.existsSync(uploadsPath)) {
 }
 
 app.use("/uploads", express.static(uploadsPath));
-console.log("🖼 Uploads served at /uploads");
 
 /* ============================================================
    MIDDLEWARE
@@ -69,7 +67,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 /* ============================================================
-   CORS
+   CORS (WEB + ANDROID SAFE)
 ============================================================ */
 
 const allowedOrigins = new Set([
@@ -99,12 +97,10 @@ app.use(
       }
 
       return cb(new Error("Not allowed by CORS"));
+
     },
-
     credentials: true,
-
     methods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"],
-
     allowedHeaders: ["Content-Type","Authorization"],
   })
 );
@@ -128,7 +124,7 @@ import messRequestRoutes from "./routes/messRequestsRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-console.log("✅ Registering all API routes...");
+console.log("✅ Registering API routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
@@ -155,8 +151,6 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/payment", paymentRoutes);
 
-console.log("✅ Routes mounted");
-
 /* ============================================================
    HEALTH CHECK
 ============================================================ */
@@ -172,6 +166,114 @@ app.get("/health", (_req,res)=>{
     db:mongoose.connection.name,
     host:mongoose.connection.host,
     env:process.env.NODE_ENV || "development"
+  });
+
+});
+
+/* ============================================================
+   SOCKET.IO SERVER
+============================================================ */
+
+const httpServer = createServer(app);
+
+const io = new Server(httpServer,{
+  cors:{
+    origin:true,
+    methods:["GET","POST","PATCH"],
+    credentials:true
+  }
+});
+
+app.set("io",io);
+
+/* ============================================================
+   SOCKET CONNECTION
+============================================================ */
+
+io.on("connection",(socket)=>{
+
+  console.log("🔗 Socket connected:",socket.id);
+
+  socket.emit("connected",{
+    socketId:socket.id
+  });
+
+  /* -----------------------------
+     OWNER ROOM
+  ----------------------------- */
+
+  socket.on("join_owner",(ownerId)=>{
+
+    if(!ownerId){
+      console.log("⚠️ join_owner missing ownerId");
+      return;
+    }
+
+    const room = `owner_${ownerId}`;
+
+    socket.join(room);
+
+    socket.ownerRoom = room;
+
+    console.log(`👨‍🍳 Vendor joined room: ${room}`);
+
+  });
+
+  /* -----------------------------
+     USER ROOM
+  ----------------------------- */
+
+  socket.on("join_user",(userId)=>{
+
+    if(!userId) return;
+
+    const room = `user_${userId}`;
+
+    socket.join(room);
+
+    console.log(`👤 User joined room: ${room}`);
+
+  });
+
+  /* -----------------------------
+     DELIVERY ROOM
+  ----------------------------- */
+
+  socket.on("join_delivery",(deliveryId)=>{
+
+    if(!deliveryId) return;
+
+    const room = `delivery_${deliveryId}`;
+
+    socket.join(room);
+
+    console.log(`🛵 Delivery joined room: ${room}`);
+
+  });
+
+  socket.on("disconnect",()=>{
+
+    console.log("❌ Socket disconnected:",socket.id);
+
+  });
+
+});
+
+/* ============================================================
+   SOCKET TEST API
+============================================================ */
+
+app.get("/socket-test",(req,res)=>{
+
+  const io = req.app.get("io");
+
+  io.emit("server_test",{
+    message:"Socket working"
+  });
+
+  res.json({
+    success:true,
+    message:"Socket event emitted"
   });
 
 });
@@ -200,84 +302,12 @@ app.get("/debug-users", async (_req,res)=>{
 
   }catch(err){
 
-    console.error("Debug error",err);
-
     res.status(500).json({
       success:false,
       error:err.message
     });
 
   }
-
-});
-
-/* ============================================================
-   SOCKET.IO
-============================================================ */
-
-const httpServer = createServer(app);
-
-const io = new Server(httpServer,{
-  cors:{
-    origin:[...allowedOrigins],
-    methods:["GET","POST"],
-    credentials:true
-  }
-});
-
-app.set("io",io);
-
-io.on("connection",(socket)=>{
-
-  console.log("🔗 Socket connected:",socket.id);
-
-  /* -----------------------------
-     OWNER ROOM (VENDOR)
-  ----------------------------- */
-
-  socket.on("join_owner",(ownerId)=>{
-
-    const room = `owner_${ownerId}`;
-
-    socket.join(room);
-
-    console.log(`👨‍🍳 Vendor joined: ${room}`);
-
-  });
-
-  /* -----------------------------
-     USER ROOM
-  ----------------------------- */
-
-  socket.on("join_user",(userId)=>{
-
-    const room = `user_${userId}`;
-
-    socket.join(room);
-
-    console.log(`👤 User joined: ${room}`);
-
-  });
-
-  /* -----------------------------
-     DELIVERY ROOM
-  ----------------------------- */
-
-  socket.on("join_delivery",(deliveryId)=>{
-
-    const room = `delivery_${deliveryId}`;
-
-    socket.join(room);
-
-    console.log(`🛵 Delivery joined: ${room}`);
-
-  });
-
-  socket.on("disconnect",()=>{
-
-    console.log("❌ Socket disconnected:",socket.id);
-
-  });
 
 });
 
@@ -318,5 +348,6 @@ httpServer.listen(PORT,()=>{
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 http://localhost:${PORT}`);
   console.log(`🔍 Debug users: /debug-users`);
+  console.log(`🔌 Socket test: /socket-test`);
 
 });

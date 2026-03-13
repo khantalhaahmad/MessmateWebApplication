@@ -94,7 +94,7 @@ router.post(
         banner: bannerUrl,
         menu: { items: parsedMenu },
         status: "pending",
-        isOpen: true, // default open
+        isOpen: true,
         documents: {
           pancard:
             req.files?.pancard?.[0]?.secure_url ||
@@ -133,7 +133,6 @@ router.post(
 
 /* ============================================================
    GET ALL MESSES (PUBLIC)
-   CLOSED restaurants also returned
 ============================================================ */
 
 router.get("/", async (req, res) => {
@@ -163,7 +162,7 @@ router.get("/", async (req, res) => {
 });
 
 /* ============================================================
-   GET MESS BY NUMERIC ID
+   GET MESS BY NUMERIC ID (PUBLIC)
 ============================================================ */
 
 router.get("/:id", async (req, res) => {
@@ -211,29 +210,32 @@ router.patch("/:messId/toggle-open", verifyToken, async (req, res) => {
 
     const { messId } = req.params;
 
-    const mess = await Mess.findOne({
-      mess_id: Number(messId)
-    });
+    if (!messId) {
+      return res.status(400).json({
+        success: false,
+        message: "Mess ID missing",
+      });
+    }
+
+    const mess = await Mess.findById(messId);
 
     if (!mess) {
-
       return res.status(404).json({
         success: false,
         message: "Mess not found",
       });
-
     }
 
     /* OWNER CHECK */
 
     if (String(mess.owner_id) !== String(req.user.id)) {
-
       return res.status(403).json({
         success: false,
         message: "Not authorized to modify this mess",
       });
-
     }
+
+    /* TOGGLE STATUS */
 
     mess.isOpen = !mess.isOpen;
 
@@ -270,26 +272,20 @@ router.delete("/:messId/menu/:itemId", verifyToken, async (req, res) => {
 
     const { messId, itemId } = req.params;
 
-    const mess = await Mess.findOne({
-      mess_id: Number(messId),
-    });
+    const mess = await Mess.findById(messId);
 
     if (!mess) {
-
       return res.status(404).json({
         success: false,
         message: "Mess not found",
       });
-
     }
 
     if (String(mess.owner_id) !== String(req.user.id)) {
-
       return res.status(403).json({
         success: false,
         message: "You are not allowed to modify this mess",
       });
-
     }
 
     mess.menu.items = mess.menu.items.filter(
