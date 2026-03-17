@@ -5,7 +5,8 @@ import Mess from "../models/Mess.js";
 import User from "../models/User.js";
 import admin from "../config/firebaseAdmin.js";
 import verifyToken from "../middleware/verifyToken.js";
-
+import Payout from "../models/Payout.js";
+import { getSettlementCycle } from "../utils/getSettlementCycle.js";
 const router = express.Router();
 
 /* ============================================================
@@ -365,29 +366,113 @@ res.status(500).json({success:false,message:err.message})
 })
 
 /* ============================================================
-   ORDER DELIVERED
+   ORDER DELIVERED + WALLET UPDATE
 ============================================================ */
 
 router.patch("/:id/delivered", verifyToken, async (req,res)=>{
 
 try{
 
-const order = await Order.findByIdAndUpdate(
-req.params.id,
-{
-status:"delivered",
-deliveredAt:new Date()
-},
-{new:true}
-)
+const order = await Order.findById(req.params.id);
 
-res.json({success:true,order})
-
-}catch(err){
-res.status(500).json({success:false,message:err.message})
+if(!order){
+return res.status(404).json({
+success:false,
+message:"Order not found"
+});
 }
 
-})
+/* -----------------------------
+   UPDATE ORDER STATUS
+----------------------------- */
+
+order.status = "delivered";
+order.deliveredAt = new Date();
+
+await order.save();
+
+/* ============================================================
+   💰 PAYOUT CALCULATION
+============================================================ */
+
+const COMMISSION_PERCENT = 20; // 🔥 change anytime
+
+const total = order.total_price || 0;
+
+const commission = (total * COMMISSION_PERCENT) / 100;
+
+const vendorAmount = total - commission;
+
+/* ============================================================
+   💼 CREATE PAYOUT ENTRY (FIXED)
+============================================================ */
+
+const mess = await Mess.findById(order.mess_id);
+
+if (!mess) {
+  throw new Error("Mess not found for payout");
+}
+
+await Payout.create({
+
+  // ✅ REQUIRED FIELD
+  vendorId: mess.owner_id,
+
+  // OPTIONAL INFO
+  messId: mess._id,
+  messName: mess.name,
+
+  // ✅ REQUIRED FIELD
+  amount: vendorAmount,
+
+  // EXTRA (optional but useful)
+  totalOrders: 1,
+  totalRevenue: total,
+  totalCommission: commission,
+
+  status: "pending",
+
+  settlementCycle: getSettlementCycle()
+
+});
+/* ============================================================
+   SOCKET UPDATE (OPTIONAL)
+============================================================ */
+
+const io = req.app.get("io");
+
+if (io) {
+
+  const ownerId = mess.owner_id.toString();
+
+  io.to(`owner_${ownerId}`).emit("wallet_update", {
+    amount: vendorAmount
+  });
+
+}
+
+/* ============================================================
+   RESPONSE
+============================================================ */
+
+res.json({
+success:true,
+message:"Order delivered & wallet updated",
+vendorAmount
+});
+
+}catch(err){
+
+console.error("Delivered error:",err);
+
+res.status(500).json({
+success:false,
+message:err.message
+});
+
+}
+
+});
 
 /* ============================================================
    USER ORDERS

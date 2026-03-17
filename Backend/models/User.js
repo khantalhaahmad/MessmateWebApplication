@@ -1,42 +1,63 @@
-// ✅ Backend/models/User.js — FINAL FIXED VERSION
+// models/User.js
 import mongoose from "mongoose";
 import AutoIncrementFactory from "mongoose-sequence";
 
 const userSchema = new mongoose.Schema(
   {
-    // 🔢 Auto-increment user ID (for easy lookup)
+    /* ============================================================
+       🔢 AUTO INCREMENT ID
+    ============================================================ */
     user_id: { type: Number, unique: true },
 
-    // 🔹 Firebase UID (for OTP/Google Sign-In)
+    /* ============================================================
+       🔐 AUTH (FIREBASE / OTP)
+    ============================================================ */
     firebaseUid: { type: String, unique: true, sparse: true },
 
-    // 🧑 Basic Info
+    /* ============================================================
+       👤 BASIC INFO
+    ============================================================ */
     name: { type: String, required: true, trim: true },
+
     email: {
       type: String,
-      required: false,
       unique: true,
       sparse: true,
       lowercase: true,
       trim: true,
     },
-    phone: { type: String, required: false, unique: true, sparse: true },
+
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
     password: { type: String },
 
-    // 👤 Role System (for dashboards)
+    /* ============================================================
+       👤 ROLE SYSTEM
+    ============================================================ */
     role: {
       type: String,
       enum: ["student", "owner", "admin", "delivery"],
       default: "student",
+      index: true
     },
 
-    // 🖼 Profile Picture
+    /* ============================================================
+       🖼 PROFILE
+    ============================================================ */
     avatar: { type: String, default: "" },
 
-    // 🔔 Firebase Cloud Messaging Token (Push Notifications)
+    /* ============================================================
+       🔔 PUSH NOTIFICATIONS
+    ============================================================ */
     fcmToken: { type: String, default: "" },
 
-    // 🌐 Device Info
+    /* ============================================================
+       📱 DEVICE TRACKING
+    ============================================================ */
     devices: [
       {
         deviceId: { type: String },
@@ -49,49 +70,99 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // 🕒 Login + Status Tracking
+    /* ============================================================
+       💰 WALLET SYSTEM (NEW)
+    ============================================================ */
+    walletBalance: {
+      type: Number,
+      default: 0
+    },
+
+    pendingPayout: {
+      type: Number,
+      default: 0
+    },
+
+    totalPayout: {
+      type: Number,
+      default: 0
+    },
+
+    /* ============================================================
+       ⚙️ PAYOUT SETTINGS
+    ============================================================ */
+    payoutMethod: {
+      type: String,
+      enum: ["auto", "manual"],
+      default: "auto"
+    },
+
+    /* ============================================================
+       🏦 BANK DETAILS
+    ============================================================ */
+    bankDetails: {
+      accountNumber: { type: String, default: "" },
+      ifsc: { type: String, default: "" },
+      accountName: { type: String, default: "" },
+      upiId: { type: String, default: "" }
+    },
+
+    /* ============================================================
+       🕒 STATUS
+    ============================================================ */
     lastLogin: { type: Date },
     isActive: { type: Boolean, default: true },
 
-    // 🗑 Soft Delete Flag
+    /* ============================================================
+       🗑 SOFT DELETE
+    ============================================================ */
     isDeleted: { type: Boolean, default: false },
   },
   {
     timestamps: true,
-    collection: "users", // ✅ FORCE correct MongoDB collection name
+    collection: "users",
   }
 );
 
 /* ============================================================
-   ⚙️ Auto-Increment Plugin
-   ============================================================ */
+   ⚙️ AUTO INCREMENT PLUGIN
+============================================================ */
+
 const AutoIncrement = AutoIncrementFactory(mongoose);
 userSchema.plugin(AutoIncrement, { inc_field: "user_id" });
 
 /* ============================================================
-   ⚙️ Indexes (avoid duplicate conflicts with nulls)
-   ============================================================ */
+   ⚙️ INDEXES
+============================================================ */
+
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 userSchema.index({ firebaseUid: 1 }, { unique: true, sparse: true });
 
 /* ============================================================
-   🧠 Middleware Hooks
-   ============================================================ */
+   🧠 METHODS
+============================================================ */
+
 userSchema.methods.updateLastLogin = async function () {
   this.lastLogin = new Date();
   await this.save();
 };
+
+/* ============================================================
+   🧠 MIDDLEWARE
+============================================================ */
 
 userSchema.pre(/^find/, function (next) {
   this.where({ isDeleted: false });
   next();
 });
 
-
 /* ============================================================
-   🧠 Export Model (Force exact collection name)
-   ============================================================ */
-const User = mongoose.models.User || mongoose.model("User", userSchema, "users");
-export default User;
+   🚀 EXPORT MODEL
+============================================================ */
 
+const User =
+  mongoose.models.User ||
+  mongoose.model("User", userSchema, "users");
+
+export default User;

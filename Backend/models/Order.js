@@ -106,6 +106,27 @@ const orderSchema = new mongoose.Schema(
     },
 
     /* -----------------------------
+       COMMISSION & EARNINGS
+    ----------------------------- */
+
+    platformCommission: {
+        type: Number,
+        default: 0
+    },
+
+    vendorEarning: {
+        type: Number,
+        default: 0
+    },
+
+    payoutStatus: {
+        type: String,
+        enum: ["pending", "paid"],
+        default: "pending",
+        index: true
+    },
+
+    /* -----------------------------
        ORDER STATUS
     ----------------------------- */
 
@@ -125,8 +146,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     /* -----------------------------
-       ORDER EXPIRY (AUTO CANCEL)
-       Used for 60s vendor response timer
+       ORDER EXPIRY
     ----------------------------- */
 
     orderExpiresAt: {
@@ -148,35 +168,12 @@ const orderSchema = new mongoose.Schema(
        ORDER TIMESTAMPS
     ----------------------------- */
 
-    acceptedAt: {
-        type: Date,
-        default: null
-    },
-
-    preparingAt: {
-        type: Date,
-        default: null
-    },
-
-    readyAt: {
-        type: Date,
-        default: null
-    },
-
-    pickedAt: {
-        type: Date,
-        default: null
-    },
-
-    deliveredAt: {
-        type: Date,
-        default: null
-    },
-
-    cancelledAt: {
-        type: Date,
-        default: null
-    }
+    acceptedAt: { type: Date, default: null },
+    preparingAt: { type: Date, default: null },
+    readyAt: { type: Date, default: null },
+    pickedAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null },
+    cancelledAt: { type: Date, default: null }
 
 },
 {
@@ -193,6 +190,7 @@ orderSchema.index({ mess_id: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ orderExpiresAt: 1 });
+orderSchema.index({ payoutStatus: 1 });
 
 /* ============================================================
    EXPORT MODEL

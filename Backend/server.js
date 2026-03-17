@@ -12,7 +12,8 @@ import { Server } from "socket.io";
 import mongoose from "mongoose";
 import path from "path";
 import fs from "fs";
-
+import payoutRoutes from "./routes/payoutRoutes.js";
+import "./jobs/payoutJob.js";
 /* ============================================================
    ENV + DATABASE
 ============================================================ */
@@ -124,6 +125,7 @@ import messRequestRoutes from "./routes/messRequestsRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
+
 console.log("✅ Registering API routes");
 
 app.use("/api/auth", authRoutes);
@@ -150,7 +152,7 @@ app.use("/api/mess-request", messRequestRoutes);
 app.use("/api/users", userRoutes);
 
 app.use("/api/payment", paymentRoutes);
-
+app.use("/api/payouts", payoutRoutes);
 /* ============================================================
    HEALTH CHECK
 ============================================================ */
