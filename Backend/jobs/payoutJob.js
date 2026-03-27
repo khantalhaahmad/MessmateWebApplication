@@ -31,7 +31,7 @@ cron.schedule("0 2 * * 3", async () => {
         ============================================================ */
 
         const messes = await Mess.find({ owner_id: vendor._id });
-        const messIds = messes.map(m => m._id.toString());
+        const messIds = messes.map(m => m._id);
 
         if (messIds.length === 0) continue;
 
@@ -64,25 +64,7 @@ cron.schedule("0 2 * * 3", async () => {
         if (totalAmount <= 0) continue;
 
         /* ============================================================
-           ⚙️ CHECK MANUAL REQUEST
-        ============================================================ */
-
-        const manualPayout = await Payout.findOne({
-          vendorId: vendor._id,
-          payoutMethod: "manual",
-          status: "pending"
-        });
-
-        let payoutAmount = totalAmount;
-        let payoutMethod = "auto";
-
-        if (manualPayout) {
-          payoutAmount = manualPayout.amount;
-          payoutMethod = "manual";
-        }
-
-        /* ============================================================
-           🏦 CREATE PAYOUT ENTRY
+           🏦 CREATE PENDING PAYOUT (🔥 CORE FIX)
         ============================================================ */
 
         const payout = await Payout.create({
@@ -92,7 +74,7 @@ cron.schedule("0 2 * * 3", async () => {
           ownerName: vendor.name,
           ownerEmail: vendor.email,
 
-          amount: payoutAmount,
+          amount: totalAmount,
 
           orders: orders.map(o => o._id),
 
@@ -100,18 +82,18 @@ cron.schedule("0 2 * * 3", async () => {
           totalRevenue,
           totalCommission,
 
-          payoutMethod,
-          status: "processing",
+          payoutMethod: "auto",
+          status: "pending", // 🔥 MOST IMPORTANT FIX
 
           settlementCycle: getSettlementCycle(),
 
           bankDetailsSnapshot: vendor.bankDetails,
 
-          requestedAt: new Date()
+          createdAt: new Date()
         });
 
         /* ============================================================
-           🧾 MARK ORDERS AS PAID
+           🧾 MARK ORDERS AS PAID (LOCK THEM)
         ============================================================ */
 
         await Order.updateMany(
@@ -119,29 +101,7 @@ cron.schedule("0 2 * * 3", async () => {
           { payoutStatus: "paid" }
         );
 
-        /* ============================================================
-           💰 UPDATE USER WALLET
-        ============================================================ */
-
-        if (payoutMethod === "manual") {
-          vendor.pendingPayout -= payoutAmount;
-        }
-
-        vendor.walletBalance = 0;
-        vendor.totalPayout += payoutAmount;
-
-        await vendor.save();
-
-        /* ============================================================
-           ✅ MARK PAYOUT COMPLETED (SIMULATION)
-        ============================================================ */
-
-        payout.status = "completed";
-        payout.paidAt = new Date();
-
-        await payout.save();
-
-        console.log(`✅ Paid ₹${payoutAmount} to vendor ${vendor._id}`);
+        console.log(`💰 Pending payout ₹${totalAmount} created for vendor ${vendor._id}`);
 
       } catch (vendorErr) {
         console.error(`❌ Vendor payout error (${vendor._id}):`, vendorErr.message);

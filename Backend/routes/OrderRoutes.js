@@ -415,22 +415,44 @@ if (!mess) {
 
 await Payout.create({
 
-  // ✅ REQUIRED FIELD
+  /* ============================
+     👤 VENDOR INFO
+  ============================ */
+
   vendorId: mess.owner_id,
 
-  // OPTIONAL INFO
   messId: mess._id,
   messName: mess.name,
 
-  // ✅ REQUIRED FIELD
+  /* ============================
+     💰 AMOUNT
+  ============================ */
+
   amount: vendorAmount,
 
-  // EXTRA (optional but useful)
+  /* ============================
+     📊 STATS
+  ============================ */
+
   totalOrders: 1,
   totalRevenue: total,
   totalCommission: commission,
 
+  /* ============================
+     ⚙️ TYPE (🔥 VERY IMPORTANT)
+  ============================ */
+
+  payoutMethod: "auto",   // 🔥 ADD THIS
+
+  /* ============================
+     📌 STATUS
+  ============================ */
+
   status: "pending",
+
+  /* ============================
+     📅 CYCLE
+  ============================ */
 
   settlementCycle: getSettlementCycle()
 

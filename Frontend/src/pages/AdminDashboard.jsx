@@ -28,6 +28,10 @@ const AdminDashboard = () => {
   // 💰 Payout states
 const [payouts, setPayouts] = useState([]);
 const [loadingPayouts, setLoadingPayouts] = useState(false);
+
+const [withdrawRequests, setWithdrawRequests] = useState([]);
+const [loadingWithdraws, setLoadingWithdraws] = useState(false);
+
 // 💰 Settlement Cycle states
 const [selectedCycle, setSelectedCycle] = useState("");
 const [currentCycle, setCurrentCycle] = useState("");
@@ -116,6 +120,10 @@ function getSettlementCycle(date = new Date()) {
 
   fetchDashboardData();
   if (user?.role === "admin") fetchPayouts(cycle);
+  if (user?.role === "admin") {
+  fetchPayouts(cycle);
+  fetchWithdrawRequests();   // 🔥 ADD THIS
+}
 }, [user]);
 
   // =============================
@@ -133,6 +141,20 @@ const fetchPayouts = async (cycle = "") => {
     Swal.fire("Error", "Failed to fetch payouts data.", "error");
   } finally {
     setLoadingPayouts(false);
+  }
+};
+
+const fetchWithdrawRequests = async () => {
+  setLoadingWithdraws(true);
+  try {
+    const res = await api.get("/payouts/admin/withdraw-requests", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setWithdrawRequests(res.data.requests || []);
+  } catch (err) {
+    console.error("❌ Withdraw fetch error:", err);
+  } finally {
+    setLoadingWithdraws(false);
   }
 };
 
@@ -162,6 +184,21 @@ const markAsPaid = async (messId) => {
   } catch (err) {
     console.error("❌ Error updating payout status:", err);
     Swal.fire("Error", "Could not update payout status.", "error");
+  }
+};
+
+const approveWithdraw = async (id) => {
+  try {
+    await api.patch(`/payouts/admin/approve/${id}`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    Swal.fire("✅ Approved", "Withdraw processed", "success");
+
+    fetchWithdrawRequests(); // refresh
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Failed to approve", "error");
   }
 };
 
@@ -440,6 +477,59 @@ const handleApprove = async (id) => {
                     ✓ Paid
                   </button>
                 )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</section>
+
+
+{/* 💸 WITHDRAW REQUESTS */}
+<section className="table-section">
+  <h2>💸 Withdraw Requests</h2>
+
+  {loadingWithdraws ? (
+    <p>Loading requests...</p>
+  ) : withdrawRequests.length === 0 ? (
+    <p>No withdraw requests</p>
+  ) : (
+    <div className="payout-table-wrapper">
+      <table className="earnings-table">
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th>Email</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {withdrawRequests.map((w) => (
+            <tr key={w._id}>
+              <td>{w.vendorId?.name}</td>
+              <td>{w.vendorId?.email}</td>
+              <td>₹{w.amount}</td>
+              <td>{new Date(w.createdAt).toLocaleDateString()}</td>
+
+              <td>
+                <span className="status-badge pending">
+                  Pending
+                </span>
+              </td>
+
+              <td>
+                <button
+                  className="approve-btn"
+                  onClick={() => approveWithdraw(w._id)}
+                >
+                  Approve
+                </button>
               </td>
             </tr>
           ))}
