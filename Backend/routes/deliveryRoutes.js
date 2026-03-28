@@ -1,102 +1,177 @@
-// ✅ routes/deliveryRoutes.js — Final Production Version
 import express from "express";
 import DeliveryRequest from "../models/DeliveryRequest.js";
 import DeliveryAgent from "../models/DeliveryAgent.js";
-import { verifyToken } from "../middleware/auth.js";
-import adminMiddleware from "../middleware/adminMiddleware.js";
-const verifyAdmin = adminMiddleware;
+import Order from "../models/Order.js";
+import User from "../models/User.js";
+import verifyToken from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 /* ============================================================
-   📨 POST /api/delivery/apply → Submit new delivery request (public)
-   ============================================================ */
-router.post("/apply", async (req, res) => {
-  try {
-    const request = new DeliveryRequest({
-      ...req.body,
-      status: "pending",
-      date: new Date().toLocaleDateString("en-GB"), // DD/MM/YYYY
-    });
+   🔐 VERIFY DELIVERY ROLE (NEW - CLEAN)
+============================================================ */
 
-    await request.save();
-    res.status(201).json({
-      success: true,
-      message: "Delivery partner request submitted successfully ✅",
-    });
-  } catch (error) {
-    console.error("❌ Error submitting delivery request:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+const verifyDelivery = async (req, res, next) => {
+  try {
+    // req.user comes from JWT (authMiddleware)
+    if (!req.user || req.user.role !== "delivery") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Delivery only",
+      });
+    }
+
+    // 🔥 Find delivery profile (optional but needed)
+    const agent = await DeliveryAgent.findOne({ phone: req.user.phone });
+
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery profile not found",
+      });
+    }
+
+    req.agent = agent;
+    next();
+  } catch (err) {
+    console.error("❌ verifyDelivery error:", err);
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
+};
+
+/* ============================================================
+   ❌ REMOVE OLD LOGIN (IMPORTANT)
+============================================================ */
+// NO /delivery/login anymore
+// login handled by /auth/firebase-login
+
+/* ============================================================
+   🟢 GO ONLINE
+============================================================ */
+
+router.post("/go-online", verifyToken, verifyDelivery, async (req, res) => {
+  const agent = req.agent;
+
+  agent.isOnline = true;
+  agent.isAvailable = true;
+
+  await agent.save();
+
+  res.json({ success: true });
 });
 
 /* ============================================================
-   🟢 GET /api/delivery/delivery-requests/pending → Fetch pending requests
-   ============================================================ */
-router.get("/delivery-requests/pending", verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const requests = await DeliveryRequest.find({ status: "pending" }).sort({ createdAt: -1 });
-    res.json({ success: true, requests });
-  } catch (error) {
-    console.error("❌ Error fetching delivery requests:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
+   🔴 GO OFFLINE
+============================================================ */
+
+router.post("/go-offline", verifyToken, verifyDelivery, async (req, res) => {
+  const agent = req.agent;
+
+  agent.isOnline = false;
+  agent.isAvailable = false;
+
+  await agent.save();
+
+  res.json({ success: true });
 });
 
 /* ============================================================
-   ✅ POST /api/delivery/approve-delivery/:id → Approve a request
-   ============================================================ */
-router.post("/approve-delivery/:id", verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { generatedPassword } = req.body;
-    const request = await DeliveryRequest.findById(req.params.id);
+   📦 AVAILABLE ORDERS
+============================================================ */
 
-    if (!request)
-      return res.status(404).json({ success: false, message: "Request not found" });
+router.get("/available-orders", verifyToken, verifyDelivery, async (req, res) => {
+  const orders = await Order.find({
+    status: "ready",
+    deliveryStatus: "NOT_ASSIGNED",
+  }).sort({ createdAt: -1 });
 
-    const newAgent = new DeliveryAgent({
-      name: request.name,
-      phone: request.phone,
-      email: request.email,
-      city: request.city,
-      vehicleType: request.vehicleType,
-      vehicleNumber: request.vehicleNumber,
-      password: generatedPassword || "default@123",
-      status: "active",
-      approvedAt: new Date(),
-    });
-
-    await newAgent.save();
-    await DeliveryRequest.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: "Delivery agent approved successfully ✅",
-      agent: newAgent,
-    });
-  } catch (error) {
-    console.error("❌ Error approving delivery request:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
+  res.json({ success: true, data: orders });
 });
 
 /* ============================================================
-   ❌ DELETE /api/delivery/reject-delivery/:id → Reject a request
-   ============================================================ */
-router.delete("/reject-delivery/:id", verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const deleted = await DeliveryRequest.findByIdAndDelete(req.params.id);
-    if (!deleted)
-      return res.status(404).json({ success: false, message: "Request not found" });
+   ✅ ACCEPT ORDER
+============================================================ */
 
-    res.json({
-      success: true,
-      message: "Delivery request rejected successfully ❌",
-    });
-  } catch (error) {
-    console.error("❌ Error rejecting delivery request:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+router.post("/accept-order", verifyToken, verifyDelivery, async (req, res) => {
+  const { orderId } = req.body;
+  const agent = req.agent;
+
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    return res.status(404).json({ success: false });
   }
+
+  if (order.deliveryStatus !== "NOT_ASSIGNED") {
+    return res.status(400).json({
+      success: false,
+      message: "Already assigned",
+    });
+  }
+
+  order.deliveryAgent = agent._id;
+  order.deliveryStatus = "ACCEPTED";
+
+  agent.isAvailable = false;
+  agent.currentOrderId = order._id;
+
+  await order.save();
+  await agent.save();
+
+  res.json({ success: true, order });
+});
+
+/* ============================================================
+   🚚 UPDATE STATUS
+============================================================ */
+
+router.post("/update-status", verifyToken, verifyDelivery, async (req, res) => {
+  const { orderId, status } = req.body;
+  const agent = req.agent;
+
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    return res.status(404).json({ success: false });
+  }
+
+  order.deliveryStatus = status;
+
+  if (status === "REACHED_RESTAURANT") {
+    order.acceptedAt = new Date();
+  }
+
+  if (status === "PICKED_UP") {
+    order.status = "picked";
+    order.pickedAt = new Date();
+  }
+
+  if (status === "DELIVERED") {
+    order.status = "delivered";
+    order.deliveredAt = new Date();
+
+    agent.isAvailable = true;
+    agent.currentOrderId = null;
+    agent.totalEarnings += order.deliveryFee || 40;
+  }
+
+  await order.save();
+  await agent.save();
+
+  res.json({ success: true, order });
+});
+
+/* ============================================================
+   💰 EARNINGS
+============================================================ */
+
+router.get("/earnings", verifyToken, verifyDelivery, async (req, res) => {
+  const agent = req.agent;
+
+  res.json({
+    success: true,
+    totalEarnings: agent.totalEarnings || 0,
+  });
 });
 
 export default router;

@@ -1,12 +1,18 @@
-// models/DeliveryAgent.js
 import mongoose from "mongoose";
-
-/* ============================================================
-   DELIVERY AGENT SCHEMA
-============================================================ */
 
 const deliveryAgentSchema = new mongoose.Schema(
 {
+    /* -----------------------------
+       🔗 LINK WITH USER (IMPORTANT)
+    ----------------------------- */
+
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        unique: true
+    },
+
     /* -----------------------------
        BASIC INFO
     ----------------------------- */
@@ -20,7 +26,8 @@ const deliveryAgentSchema = new mongoose.Schema(
     phone: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        trim: true
     },
 
     email: {
@@ -51,15 +58,6 @@ const deliveryAgentSchema = new mongoose.Schema(
     },
 
     /* -----------------------------
-       LOGIN
-    ----------------------------- */
-
-    password: {
-        type: String,
-        required: true
-    },
-
-    /* -----------------------------
        ACCOUNT STATUS
     ----------------------------- */
 
@@ -74,8 +72,13 @@ const deliveryAgentSchema = new mongoose.Schema(
     },
 
     /* -----------------------------
-       AVAILABILITY (VERY IMPORTANT)
+       ONLINE / AVAILABILITY
     ----------------------------- */
+
+    isOnline: {
+        type: Boolean,
+        default: false
+    },
 
     isAvailable: {
         type: Boolean,
@@ -86,32 +89,33 @@ const deliveryAgentSchema = new mongoose.Schema(
        CURRENT ORDER
     ----------------------------- */
 
-    currentOrder: {
+    currentOrderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
         default: null
     },
 
     /* -----------------------------
-       LIVE LOCATION
+       LOCATION
     ----------------------------- */
 
     location: {
         lat: { type: Number, default: null },
         lng: { type: Number, default: null }
+    },
+
+    /* -----------------------------
+       EARNINGS
+    ----------------------------- */
+
+    totalEarnings: {
+        type: Number,
+        default: 0
     }
 
 },
 {
     timestamps: true
 });
-
-/* ============================================================
-   INDEXES (PERFORMANCE)
-============================================================ */
-
-deliveryAgentSchema.index({ phone: 1 });
-deliveryAgentSchema.index({ status: 1 });
-deliveryAgentSchema.index({ isAvailable: 1 });
 
 export default mongoose.model("DeliveryAgent", deliveryAgentSchema);

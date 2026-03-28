@@ -127,7 +127,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     /* -----------------------------
-       ORDER STATUS
+       ORDER STATUS (VENDOR FLOW)
     ----------------------------- */
 
     status: {
@@ -164,6 +164,39 @@ const orderSchema = new mongoose.Schema(
         default: null
     },
 
+    /* ============================================================
+       🚴 DELIVERY SYSTEM (ADDED ONLY THIS PART)
+    ============================================================ */
+
+    deliveryStatus: {
+        type: String,
+        enum: [
+            "NOT_ASSIGNED",
+            "ASSIGNED",
+            "ACCEPTED",
+            "REACHED_RESTAURANT",
+            "PICKED_UP",
+            "OUT_FOR_DELIVERY",
+            "DELIVERED"
+        ],
+        default: "NOT_ASSIGNED"
+    },
+
+    pickupLocation: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null }
+    },
+
+    dropLocation: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null }
+    },
+
+    deliveryFee: {
+        type: Number,
+        default: 40
+    },
+
     /* -----------------------------
        ORDER TIMESTAMPS
     ----------------------------- */
@@ -178,8 +211,7 @@ const orderSchema = new mongoose.Schema(
 },
 {
     timestamps: true
-}
-);
+});
 
 /* ============================================================
    INDEXES (PERFORMANCE)

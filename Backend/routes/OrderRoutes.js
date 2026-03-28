@@ -7,6 +7,7 @@ import admin from "../config/firebaseAdmin.js";
 import verifyToken from "../middleware/verifyToken.js";
 import Payout from "../models/Payout.js";
 import { getSettlementCycle } from "../utils/getSettlementCycle.js";
+import DeliveryAgent from "../models/DeliveryAgent.js";
 const router = express.Router();
 
 /* ============================================================
@@ -316,185 +317,40 @@ res.status(500).json({success:false,message:err.message})
 })
 
 /* ============================================================
-   ORDER READY
+   ORDER READY (UPDATED 🔥)
 ============================================================ */
 
 router.patch("/:id/ready", verifyToken, async (req,res)=>{
 
 try{
 
-const order = await Order.findByIdAndUpdate(
-req.params.id,
-{
-status:"ready",
-readyAt:new Date()
-},
-{new:true}
-)
-
-res.json({success:true,order})
-
-}catch(err){
-res.status(500).json({success:false,message:err.message})
-}
-
-})
-
-/* ============================================================
-   ORDER PICKED (DELIVERY)
-============================================================ */
-
-router.patch("/:id/picked", verifyToken, async (req,res)=>{
-
-try{
-
-const order = await Order.findByIdAndUpdate(
-req.params.id,
-{
-status:"picked",
-pickedAt:new Date()
-},
-{new:true}
-)
-
-res.json({success:true,order})
-
-}catch(err){
-res.status(500).json({success:false,message:err.message})
-}
-
-})
-
-/* ============================================================
-   ORDER DELIVERED + WALLET UPDATE
-============================================================ */
-
-router.patch("/:id/delivered", verifyToken, async (req,res)=>{
-
-try{
-
 const order = await Order.findById(req.params.id);
 
 if(!order){
-return res.status(404).json({
-success:false,
-message:"Order not found"
-});
+return res.status(404).json({success:false,message:"Order not found"})
 }
 
 /* -----------------------------
-   UPDATE ORDER STATUS
+   UPDATE STATUS
 ----------------------------- */
 
-order.status = "delivered";
-order.deliveredAt = new Date();
+order.status = "ready";
+order.readyAt = new Date();
+
+// 🔥 ADD THIS LINE (VERY IMPORTANT)
+order.deliveryStatus = "NOT_ASSIGNED";
 
 await order.save();
 
-/* ============================================================
-   💰 PAYOUT CALCULATION
-============================================================ */
-
-const COMMISSION_PERCENT = 20; // 🔥 change anytime
-
-const total = order.total_price || 0;
-
-const commission = (total * COMMISSION_PERCENT) / 100;
-
-const vendorAmount = total - commission;
-
-/* ============================================================
-   💼 CREATE PAYOUT ENTRY (FIXED)
-============================================================ */
-
-const mess = await Mess.findById(order.mess_id);
-
-if (!mess) {
-  throw new Error("Mess not found for payout");
-}
-
-await Payout.create({
-
-  /* ============================
-     👤 VENDOR INFO
-  ============================ */
-
-  vendorId: mess.owner_id,
-
-  messId: mess._id,
-  messName: mess.name,
-
-  /* ============================
-     💰 AMOUNT
-  ============================ */
-
-  amount: vendorAmount,
-
-  /* ============================
-     📊 STATS
-  ============================ */
-
-  totalOrders: 1,
-  totalRevenue: total,
-  totalCommission: commission,
-
-  /* ============================
-     ⚙️ TYPE (🔥 VERY IMPORTANT)
-  ============================ */
-
-  payoutMethod: "auto",   // 🔥 ADD THIS
-
-  /* ============================
-     📌 STATUS
-  ============================ */
-
-  status: "pending",
-
-  /* ============================
-     📅 CYCLE
-  ============================ */
-
-  settlementCycle: getSettlementCycle()
-
-});
-/* ============================================================
-   SOCKET UPDATE (OPTIONAL)
-============================================================ */
-
-const io = req.app.get("io");
-
-if (io) {
-
-  const ownerId = mess.owner_id.toString();
-
-  io.to(`owner_${ownerId}`).emit("wallet_update", {
-    amount: vendorAmount
-  });
-
-}
-
-/* ============================================================
-   RESPONSE
-============================================================ */
-
-res.json({
-success:true,
-message:"Order delivered & wallet updated",
-vendorAmount
-});
+res.json({success:true,order})
 
 }catch(err){
-
-console.error("Delivered error:",err);
-
-res.status(500).json({
-success:false,
-message:err.message
-});
-
+res.status(500).json({success:false,message:err.message})
 }
 
-});
+})
+
+
 
 /* ============================================================
    USER ORDERS
