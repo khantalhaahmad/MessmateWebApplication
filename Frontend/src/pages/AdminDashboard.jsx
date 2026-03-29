@@ -627,82 +627,84 @@ const handleApprove = async (id) => {
             <td>
               {/* ✅ APPROVE BUTTON */}
               <button
-                className="approve-btn"
-                onClick={async () => {
-                  const { value: password } = await Swal.fire({
-                    title: "🔐 Set Password for Delivery Agent",
-                    input: "text",
-                    inputPlaceholder: "Enter password",
-                    showCancelButton: true,
-                    confirmButtonText: "Approve ✅",
-                    confirmButtonColor: "#28a745",
-                    cancelButtonText: "Cancel",
-                    inputValidator: (v) =>
-                      !v ? "Password is required!" : undefined,
-                  });
+  className="approve-btn"
+  onClick={async () => {
+    try {
+      await api.post(
+        `/admin/delivery-requests/${d._id}/approve`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-                  if (!password) return;
+      Swal.fire(
+        "✅ Approved!",
+        `${d.name} is now a Delivery Agent`,
+        "success"
+      );
 
-                  try {
-                    await api.post(`/delivery/approve-delivery/${d._id}`, {
-                      generatedPassword: password,
-                    });
+      // remove from UI
+      setDeliveryRequests((prev) =>
+        prev.filter((r) => r._id !== d._id)
+      );
 
-                    Swal.fire(
-                      "✅ Approved!",
-                      `${d.name} has been added as Delivery Agent.`,
-                      "success"
-                    );
-
-                    // 🔄 Remove approved request from table instantly
-                    setDeliveryRequests((prev) =>
-                      prev.filter((r) => r._id !== d._id)
-                    );
-                  } catch (err) {
-                    console.error("❌ Approve error:", err);
-                    Swal.fire("Error", "Failed to approve request.", "error");
-                  }
-                }}
-              >
-                ✅ Approve
-              </button>
+    } catch (err) {
+      console.error("❌ Approve error:", err);
+      Swal.fire("Error", "Failed to approve request.", "error");
+    }
+  }}
+>
+  ✅ Approve
+</button>
 
               {/* ❌ REJECT BUTTON */}
               <button
-                className="reject-btn"
-                onClick={async () => {
-                  const confirm = await Swal.fire({
-                    title: "Reject Request?",
-                    text: `Do you want to reject ${d.name}?`,
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonText: "Reject ❌",
-                    confirmButtonColor: "#d33",
-                    cancelButtonText: "Cancel",
-                  });
+  className="reject-btn"
+  onClick={async () => {
+    const confirm = await Swal.fire({
+      title: "Reject Request?",
+      text: `Do you want to reject ${d.name}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Reject ❌",
+      confirmButtonColor: "#d33",
+      cancelButtonText: "Cancel",
+    });
 
-                  if (!confirm.isConfirmed) return;
+    if (!confirm.isConfirmed) return;
 
-                  try {
-                    await api.delete(`/delivery/reject-delivery/${d._id}`);
-                    Swal.fire(
-                      "❌ Rejected",
-                      `${d.name}'s request has been removed.`,
-                      "info"
-                    );
+    try {
+      await api.post(
+        `/admin/delivery-requests/${d._id}/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-                    // 🔄 Remove rejected request from table instantly
-                    setDeliveryRequests((prev) =>
-                      prev.filter((r) => r._id !== d._id)
-                    );
-                  } catch (err) {
-                    console.error("❌ Reject error:", err);
-                    Swal.fire("Error", "Failed to reject request.", "error");
-                  }
-                }}
-              >
-                ❌ Reject
-              </button>
+      Swal.fire(
+        "❌ Rejected",
+        `${d.name}'s request has been removed.`,
+        "info"
+      );
+
+      setDeliveryRequests((prev) =>
+        prev.filter((r) => r._id !== d._id)
+      );
+
+    } catch (err) {
+      console.error("❌ Reject error:", err);
+      Swal.fire("Error", "Failed to reject request.", "error");
+    }
+  }}
+>
+  ❌ Reject
+</button>
             </td>
           </tr>
         ))

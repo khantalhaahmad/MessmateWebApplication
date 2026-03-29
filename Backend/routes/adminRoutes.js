@@ -340,6 +340,139 @@ router.get("/delivery-requests/pending", authMiddleware, adminMiddleware, async 
   }
 });
 
+/* ============================================================
+   ✅ APPROVE DELIVERY AGENT (🔥 MOST IMPORTANT)
+============================================================ */
+router.post("/delivery-requests/:id/approve", authMiddleware, adminMiddleware, async (req, res) => {
+  console.log("🔥 APPROVE API HIT", req.params.id);
+
+  try {
+    const request = await DeliveryRequest.findById(req.params.id);
+
+    console.log("📦 REQUEST:", request);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found",
+      });
+    }
+
+    if (!request.phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone missing in request",
+      });
+    }
+
+    // 🔥 Normalize phone
+const cleanPhone = request.phone.replace(/\D/g, "").slice(-10);
+
+console.log("📱 CLEAN PHONE:", cleanPhone);
+
+// 🔍 Try to find user
+let user = await User.findOne({
+  phone: { $regex: cleanPhone }
+});
+
+console.log("👤 FOUND USER:", user);
+
+// 🔥 FALLBACK (IMPORTANT FIX)
+if (!user) {
+  console.log("⚠️ User not found → creating new user");
+
+ user = await User.create({
+  name: request.name,
+  phone: cleanPhone,
+
+  // ✅ FIX
+  email: request.email || `${cleanPhone}@delivery.com`,
+
+  role: "delivery",
+});
+
+  console.log("🆕 NEW USER CREATED:", user);
+}
+
+// 🔍 Check if already agent
+const existingAgent = await DeliveryAgent.findOne({ userId: user._id });
+
+if (existingAgent) {
+  return res.status(400).json({
+    success: false,
+    message: "Already a delivery agent",
+  });
+}
+
+// ✅ Create Delivery Agent (UPDATED 🔥)
+const agent = await DeliveryAgent.create({
+  userId: user._id,
+  name: request.name,
+  phone: cleanPhone,
+
+  // ✅ FIXED EMAIL (IMPORTANT)
+  email: request.email || user.email || `${cleanPhone}@delivery.com`,
+
+  city: request.city,
+  vehicleType: request.vehicleType,
+  vehicleNumber: request.vehicleNumber,
+  isOnline: false,
+  isAvailable: true,
+});
+console.log("🚀 AGENT CREATED:", agent);
+
+// 🔥 FORCE UPDATE (IMPORTANT)
+await User.findByIdAndUpdate(user._id, {
+  role: "delivery",
+  isActive: true,
+}, { new: true });
+
+console.log("🎭 ROLE UPDATED TO DELIVERY");
+
+// 🔥 Update request status
+request.status = "approved";
+await request.save();
+
+console.log("✅ APPROVED SUCCESS");
+
+res.json({
+  success: true,
+  message: "Delivery agent approved",
+  agent,
+});
+
+} catch (error) {
+  console.error("💥 FULL ERROR:", error);
+  res.status(500).json({
+    success: false,
+    message: error.message,
+  });
+}
+});
+/* ============================================================
+   ❌ REJECT DELIVERY REQUEST
+============================================================ */
+router.post("/delivery-requests/:id/reject", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const request = await DeliveryRequest.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ success: false });
+    }
+
+    request.status = "rejected";
+    await request.save();
+
+    res.json({
+      success: true,
+      message: "Request rejected",
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false });
+  }
+});
 
 /* ============================================================
    🏆 Top Performing Messes — Merged + Ranked (Fixed for Real Data)

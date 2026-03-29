@@ -130,39 +130,72 @@ router.post("/firebase-login", verifyFirebaseToken, async (req, res) => {
     }
 
     /* ============================================================
-       🔍 FIND EXISTING USER
+       🔍 FIND USER BY PHONE (ONLY)
     ============================================================ */
     let user = await User.findOne({
-      $or: [
-        { firebaseUid: uid },
-        ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
-        ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
-      ],
+      ...(normalizedPhone && {
+        phone: { $regex: normalizedPhone.slice(-10) + "$" }
+      })
     });
 
     /* ============================================================
-       🚨 ROLE-SAFE LOGIN LOGIC
+       🔗 SAFE FIREBASE UID LINKING
     ============================================================ */
+    if (user && !user.firebaseUid) {
+      const existing = await User.findOne({ firebaseUid: uid });
 
+      if (!existing) {
+        user.firebaseUid = uid;
+        await user.save();
+        console.log("🔗 Firebase UID linked");
+      } else {
+        console.log("⚠️ Firebase UID already linked to another user");
+      }
+    }
+
+    /* ============================================================
+       👤 CREATE USER IF NOT EXISTS
+    ============================================================ */
     if (!user) {
-      // ✅ Only NORMAL USERS auto-create
       user = await User.create({
         firebaseUid: uid,
         name: name || "User",
         phone: normalizedPhone,
         email: normalizedEmail,
-        role: "student",
+        role: "student", // ✅ backend decides role later
         avatar: picture || "",
       });
-    } else {
-      // 🔥 Update missing data
+    }
+
+    /* ============================================================
+       🔄 SAFE UPDATE (NO DUPLICATE UID)
+    ============================================================ */
+    else {
       const updates = {};
 
-      if (!user.firebaseUid) updates.firebaseUid = uid;
+      // 🔥 SAFE UID UPDATE
+      if (!user.firebaseUid) {
+        const existing = await User.findOne({ firebaseUid: uid });
+
+        if (!existing) {
+          updates.firebaseUid = uid;
+        } else {
+          console.log("⚠️ Skipping firebaseUid update (already exists)");
+        }
+      }
+
       if (!user.phone && normalizedPhone) updates.phone = normalizedPhone;
       if (!user.email && normalizedEmail) updates.email = normalizedEmail;
       if (!user.name && name) updates.name = name;
       if (!user.avatar && picture) updates.avatar = picture;
+
+      // 🔥 FINAL SAFETY CHECK
+      if (updates.firebaseUid) {
+        const existing = await User.findOne({ firebaseUid: updates.firebaseUid });
+        if (existing && existing._id.toString() !== user._id.toString()) {
+          delete updates.firebaseUid;
+        }
+      }
 
       if (Object.keys(updates).length) {
         await User.updateOne({ _id: user._id }, { $set: updates });
@@ -171,14 +204,13 @@ router.post("/firebase-login", verifyFirebaseToken, async (req, res) => {
     }
 
     /* ============================================================
-       🔐 TOKEN (UPDATED)
+       🔐 TOKEN
     ============================================================ */
-
     const token = jwt.sign(
       {
         id: user._id,
         role: user.role,
-        phone: user.phone, // 🔥 REQUIRED FOR DELIVERY
+        phone: user.phone,
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
@@ -187,7 +219,6 @@ router.post("/firebase-login", verifyFirebaseToken, async (req, res) => {
     /* ============================================================
        🚀 RESPONSE
     ============================================================ */
-
     res.json({
       success: true,
       message: "Login successful",

@@ -321,36 +321,72 @@ res.status(500).json({success:false,message:err.message})
 ============================================================ */
 
 router.patch("/:id/ready", verifyToken, async (req,res)=>{
+  try{
 
-try{
+    const order = await Order.findById(req.params.id);
 
-const order = await Order.findById(req.params.id);
+    if(!order){
+      return res.status(404).json({
+        success:false,
+        message:"Order not found"
+      });
+    }
 
-if(!order){
-return res.status(404).json({success:false,message:"Order not found"})
-}
+    /* -----------------------------
+       UPDATE STATUS
+    ----------------------------- */
 
-/* -----------------------------
-   UPDATE STATUS
------------------------------ */
+    order.status = "ready";
+    order.readyAt = new Date();
+    order.deliveryStatus = "NOT_ASSIGNED";
 
-order.status = "ready";
-order.readyAt = new Date();
+    await order.save();
 
-// 🔥 ADD THIS LINE (VERY IMPORTANT)
-order.deliveryStatus = "NOT_ASSIGNED";
+    /* ============================================================
+       🚚 BROADCAST TO DELIVERY AGENTS
+    ============================================================ */
 
-await order.save();
+    const io = req.app.get("io");
 
-res.json({success:true,order})
+    const agents = await DeliveryAgent.find({
+      isOnline: true,
+      isAvailable: true
+    });
 
-}catch(err){
-res.status(500).json({success:false,message:err.message})
-}
+    // ✅ ADD THIS (DEBUG)
+    if (!agents.length) {
+      console.log("⚠️ No delivery agents available");
+    }
 
-})
+    console.log("🛵 Available agents:", agents.length);
 
+    agents.forEach(agent => {
+      io.to(`delivery_${agent._id}`).emit("NEW_ORDER", {
+        orderId: order._id,
+        messName: order.mess_name,
+        total: order.total_price,
+        items: order.items
+      });
+    });
 
+    console.log("📢 Order broadcasted");
+
+    /* ============================================================ */
+
+    res.json({
+      success:true,
+      message:"Order ready & broadcasted",
+      order
+    });
+
+  }catch(err){
+    console.error("Ready route error:", err);
+    res.status(500).json({
+      success:false,
+      message:err.message
+    });
+  }
+});
 
 /* ============================================================
    USER ORDERS
