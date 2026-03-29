@@ -100,26 +100,29 @@ image: item.image || "default.png"
 
 const newOrder = await Order.create({
 
-user_id: dbUser._id,
+  user_id: dbUser._id,
 
-mess_id: mess._id.toString(),
+  mess_id: mess._id.toString(),
+  mess_name: mess.name,
 
-mess_name: mess.name,
+  // 🔥 ADD THIS (VERY IMPORTANT)
+  customerName: dbUser.name,
+  customerPhone: dbUser.phone,
 
-items: updatedItems,
+ pickupAddress: mess.address,
+dropAddress: dbUser.address,
 
-total_price: finalTotal,
+  deliveryFee: 40, // fixed for demo
 
-paymentMethod: paymentMethod || "Online",
+  items: updatedItems,
+  total_price: finalTotal,
+  paymentMethod: paymentMethod || "Online",
 
-status: "pending",
+  status: "pending",
+  deliveryStatus: "NOT_ASSIGNED",
 
-orderExpiresAt: new Date(Date.now() + 60000)
-
+  orderExpiresAt: new Date(Date.now() + 60000)
 });
-
-console.log("New Order:", newOrder._id);
-
 /* ============================================================
    SOCKET NOTIFY OWNER
 ============================================================ */
@@ -337,10 +340,13 @@ router.patch("/:id/ready", verifyToken, async (req,res)=>{
     ----------------------------- */
 
     order.status = "ready";
-    order.readyAt = new Date();
-    order.deliveryStatus = "NOT_ASSIGNED";
+order.readyAt = new Date();
+order.deliveryStatus = "NOT_ASSIGNED";
 
-    await order.save();
+// 🔥 ADD THIS LINE (IMPORTANT)
+order.expiresAt = new Date(Date.now() + 15000);
+
+await order.save();
 
     /* ============================================================
        🚚 BROADCAST TO DELIVERY AGENTS
@@ -361,14 +367,49 @@ router.patch("/:id/ready", verifyToken, async (req,res)=>{
     console.log("🛵 Available agents:", agents.length);
 
     agents.forEach(agent => {
-      io.to(`delivery_${agent._id}`).emit("NEW_ORDER", {
-        orderId: order._id,
-        messName: order.mess_name,
-        total: order.total_price,
-        items: order.items
-      });
-    });
+  io.to(`delivery_${agent._id}`).emit("NEW_ORDER", {
+    
+    _id: order._id,
 
+    // 🔥 FULL DATA
+    restaurantName: order.mess_name,
+
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+
+    dropAddress: order.dropAddress,
+
+    totalAmount: order.total_price,
+    deliveryFee: order.deliveryFee,
+
+    paymentType: order.paymentMethod,
+
+    // 🔥 TIMER
+    expiresAt: Date.now() + 15000
+  });
+});
+
+setTimeout(async () => {
+
+  const currentOrder = await Order.findById(order._id);
+
+  if (currentOrder && currentOrder.deliveryStatus === "NOT_ASSIGNED") {
+
+    currentOrder.deliveryStatus = "EXPIRED";
+    await currentOrder.save();
+
+    const io = req.app.get("io");
+
+   agents.forEach(agent => {
+  io.to(`delivery_${agent._id}`).emit("ORDER_EXPIRED", {
+    orderId: order._id
+  });
+});
+
+    console.log("⏱️ Order expired:", order._id);
+  }
+
+}, 15000);
     console.log("📢 Order broadcasted");
 
     /* ============================================================ */

@@ -36,6 +36,20 @@ const userSchema = new mongoose.Schema(
     password: { type: String },
 
     /* ============================================================
+   📍 ADDRESS (🔥 ADD THIS)
+============================================================ */
+
+address: {
+  type: String,
+  default: ""
+},
+
+location: {
+  lat: { type: Number, default: null },
+  lng: { type: Number, default: null }
+},
+
+    /* ============================================================
        👤 ROLE SYSTEM
     ============================================================ */
     role: {

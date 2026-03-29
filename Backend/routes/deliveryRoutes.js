@@ -110,24 +110,27 @@ router.post("/go-offline", verifyToken, verifyDeliveryAgent, async (req, res) =>
 });
 
 /* ============================================================
-   📦 AVAILABLE ORDERS (DASHBOARD SUPPORT)
+   📦 AVAILABLE ORDERS (ONLY NEW ORDERS)
 ============================================================ */
 router.get("/available-orders", verifyToken, verifyDeliveryAgent, async (req, res) => {
   try {
-    const agent = req.agent;
+    // ❗ agent variable abhi needed nahi hai yaha
 
     const orders = await Order.find({
-      $or: [
-        { deliveryStatus: "NOT_ASSIGNED" },
-        { deliveryAgent: agent._id }
-      ]
+      deliveryStatus: "NOT_ASSIGNED"
     }).sort({ createdAt: -1 });
 
-    res.json({ success: true, data: orders });
+    res.json({
+      success: true,
+      data: orders
+    });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("Available Orders Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch available orders"
+    });
   }
 });
 
@@ -174,6 +177,47 @@ router.post("/accept-order", verifyToken, verifyDeliveryAgent, async (req, res) 
     console.log("✅ Order accepted by:", agent._id);
 
     res.json({ success: true, order });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+router.get("/active-orders", verifyToken, verifyDeliveryAgent, async (req, res) => {
+  try {
+    const agent = req.agent;
+
+    const orders = await Order.find({
+      deliveryAgent: agent._id,
+      deliveryStatus: {
+        $in: [
+          "ACCEPTED",
+          "REACHED_RESTAURANT",
+          "PICKED_UP",
+          "OUT_FOR_DELIVERY"
+        ]
+      }
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, data: orders });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+router.get("/completed-orders", verifyToken, verifyDeliveryAgent, async (req, res) => {
+  try {
+    const agent = req.agent;
+
+    const orders = await Order.find({
+      deliveryAgent: agent._id,
+      deliveryStatus: "DELIVERED"
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, data: orders });
 
   } catch (err) {
     console.error(err);
@@ -241,13 +285,61 @@ router.get("/earnings", verifyToken, verifyDeliveryAgent, async (req, res) => {
   try {
     const agent = req.agent;
 
+    const orders = await Order.find({
+      deliveryAgent: agent._id,
+      deliveryStatus: "DELIVERED"
+    });
+
+    let total = 0;
+    let today = 0;
+
+    const weekly = [0,0,0,0,0,0,0];
+    const monthly = Array(30).fill(0);
+
+    const now = new Date();
+
+    orders.forEach(order => {
+
+      // 🔥 safety check
+      if (!order.deliveredAt) return;
+
+      const amount = order.deliveryFee || 0;
+      const date = new Date(order.deliveredAt);
+
+      total += amount;
+
+      // ✅ TODAY
+      if (
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      ) {
+        today += amount;
+      }
+
+      // ✅ WEEKLY
+      const day = date.getDay();
+      weekly[day] += amount;
+
+      // ✅ MONTHLY
+      const dayOfMonth = date.getDate() - 1;
+      if (dayOfMonth >= 0 && dayOfMonth < 30) {
+        monthly[dayOfMonth] += amount;
+      }
+    });
+
     res.json({
       success: true,
-      totalEarnings: agent.totalEarnings || 0,
+      data: {
+        total,
+        today,
+        weekly,
+        monthly
+      }
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Earnings Error:", err);
     res.status(500).json({ success: false });
   }
 });

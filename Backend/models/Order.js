@@ -169,19 +169,19 @@ const orderSchema = new mongoose.Schema(
     ============================================================ */
 
     deliveryStatus: {
-        type: String,
-        enum: [
-            "NOT_ASSIGNED",
-            "ASSIGNED",
-            "ACCEPTED",
-            "REACHED_RESTAURANT",
-            "PICKED_UP",
-            "OUT_FOR_DELIVERY",
-            "DELIVERED"
-        ],
-        default: "NOT_ASSIGNED"
-    },
-
+  type: String,
+  enum: [
+    "NOT_ASSIGNED",
+    "ASSIGNED",
+    "ACCEPTED",
+    "REACHED_RESTAURANT",
+    "PICKED_UP",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED",
+    "EXPIRED" // 🔥 ADD THIS
+  ],
+  default: "NOT_ASSIGNED"
+},
     pickupLocation: {
         lat: { type: Number, default: null },
         lng: { type: Number, default: null }
@@ -196,7 +196,42 @@ const orderSchema = new mongoose.Schema(
         type: Number,
         default: 40
     },
+/* -----------------------------
+   CUSTOMER INFO (🔥 ADD THIS)
+----------------------------- */
 
+customerName: {
+    type: String,
+    default: ""
+},
+
+customerPhone: {
+    type: String,
+    default: ""
+},
+
+/* -----------------------------
+   ADDRESS INFO (🔥 ADD THIS)
+----------------------------- */
+
+pickupAddress: {
+    type: String,
+    default: ""
+},
+
+dropAddress: {
+    type: String,
+    default: ""
+},
+
+/* -----------------------------
+   DELIVERY META (OPTIONAL BUT PRO)
+----------------------------- */
+
+distance: {
+    type: Number,
+    default: 0
+},
     /* -----------------------------
        ORDER TIMESTAMPS
     ----------------------------- */
