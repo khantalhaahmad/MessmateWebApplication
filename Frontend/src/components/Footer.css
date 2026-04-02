@@ -1,206 +1,229 @@
 /* ============================================================
-   🌑 FOOTER — Clean Modern Zomato-Style Layout
+   🌑 FOOTER — FINAL FIXED (ZOMATO STYLE PERFECT)
 ============================================================ */
+
 .footer {
-  background-color: #0d0d0d;
+  background: #0d0d0d;
   color: #fff;
-  padding: 60px 80px 40px;
+  padding: 65px 20px 30px;
   font-family: "Poppins", sans-serif;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-  position: relative;
+}
+
+/* 🔥 CENTER WRAPPER */
+.footer-container {
+  max-width: 1200px;
+  margin: auto;
 }
 
 /* ==============================
-   🔶 Brand Section
+   🔶 BRAND (CRITICAL FIX)
 ============================== */
-.footer-header {
+.footer-top {
   display: flex;
+  justify-content: flex-start; /* 🔥 force LEFT */
   align-items: center;
-  gap: 12px;
-  justify-content: flex-start;
-  margin-left: 40px; /* ✅ Slight right offset for logo/title */
-  text-align: left;
+  margin-bottom: 45px;
 }
 
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* 🔥 Bigger Logo */
 .footer-logo {
-  width: 45px;
-  height: 45px;
+  width: 90px;
+  height: 52px;
   object-fit: contain;
 }
 
+/* 🔥 Title FIX (no right push) */
 .footer-title {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: #fff;
+  color: #ffffff;
+  margin: 0; /* 🔥 IMPORTANT FIX */
+  letter-spacing: 0.5px;
 }
 
 /* ==============================
-   📚 Footer Columns Grid
+   📚 GRID SYSTEM (STABLE)
 ============================== */
 .footer-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 60px;
-  margin-left: 40px; /* ✅ Align columns under logo */
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 45px;
+  align-items: flex-start; /* 🔥 prevents vertical misalignment */
 }
 
-/* Each column */
+/* COLUMN */
 .footer-column {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: 160px;
 }
 
-.footer-column h2 {
-  font-size: 1rem;
+/* HEADINGS */
+.footer-column h4 {
+  font-size: 14px;
   font-weight: 600;
-  color: #fff;
-  margin-bottom: 6px;
+  margin-bottom: 16px;
+  color: #ffffff;
 }
 
-/* Remove default UL styles */
-.footer-column ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-/* Links */
-.footer-link {
+/* LINKS */
+.footer-column a {
   color: #bdbdbd;
   text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.2s ease;
+  font-size: 13px;
+  margin-bottom: 10px;
+  transition: all 0.25s ease;
 }
 
-.footer-link:hover {
-  color: #fff;
+/* 🔥 Hover */
+.footer-column a:hover {
+  color: #ffffff;
+  transform: translateX(2px);
 }
 
 /* ==============================
-   🌐 Social Links
+   🌐 SOCIAL (ZOMATO EXACT STYLE)
 ============================== */
+
 .footer-social {
   display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-top: 5px;
+  gap: 8px; /* 🔥 tighter spacing */
+  margin-top: 12px;
 }
 
+/* BUTTON STYLE */
 .footer-social a {
-  color: #bdbdbd;
-  font-size: 1.2rem;
-  transition: color 0.2s ease, transform 0.2s ease;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1c1c1c; /* 🔥 softer dark */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dcdcdc; /* 🔥 softer white */
+  font-size: 13px;
+  transition: all 0.25s ease;
 }
 
+/* HOVER EFFECT */
 .footer-social a:hover {
+  background: #ffffff;
+  color: #000;
+  transform: translateY(-1px);
+}
+/* ==============================
+   📲 PLAY STORE BUTTON (ZOMATO STYLE)
+============================== */
+.footer-apps {
+  margin-top: 20px;
+}
+
+/* BUTTON */
+.playstore-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #111;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: fit-content;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+/* HOVER */
+.playstore-btn:hover {
+  border-color: #fff;
+  transform: translateY(-2px);
+}
+
+/* ICON */
+.playstore-icon img {
+  width: 26px;   /* 🔥 small controlled size */
+  height: 26px;
+}
+
+/* TEXT */
+.playstore-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.playstore-text span {
+  font-size: 10px;
+  color: #aaa;
+}
+
+.playstore-text strong {
+  font-size: 14px;
   color: #fff;
-  transform: scale(1.1);
+  font-weight: 600;
 }
 
 /* ==============================
-   ⚙️ Copyright
+   ⚙️ BOTTOM
 ============================== */
 .footer-bottom {
   border-top: 1px solid #1a1a1a;
   text-align: center;
-  color: #999;
-  font-size: 13px;
+  color: #8a8a8a;
+  font-size: 12.5px;
   padding-top: 18px;
-  margin-top: 25px;
+  margin-top: 45px;
 }
 
 /* ============================================================
-   📱 Responsive Layout
+   📱 RESPONSIVE
 ============================================================ */
+
+/* Tablet */
 @media (max-width: 1024px) {
-  .footer {
-    padding: 50px 40px 30px;
-    gap: 30px;
-  }
-
-  .footer-header {
-    margin-left: 30px;
-  }
-
   .footer-grid {
-    margin-left: 30px;
-    gap: 40px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
   }
 }
 
+/* Mobile */
 @media (max-width: 768px) {
   .footer {
-    padding: 40px 25px 25px;
-    gap: 25px;
-  }
-
-  .footer-header {
-    margin-left: 20px;
+    padding: 45px 20px;
   }
 
   .footer-grid {
-    margin-left: 20px;
-    flex-wrap: wrap;
-    gap: 30px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
   }
 
-  .footer-column {
-    min-width: 45%;
+  .footer-title {
+    font-size: 1.7rem;
   }
 
-  .footer-social {
-    gap: 12px;
-  }
-
-  .footer-social a {
-    font-size: 1.1rem;
+  .footer-logo {
+    width: 44px;
+    height: 44px;
   }
 }
 
+/* Small Mobile */
 @media (max-width: 480px) {
-  .footer {
-    padding: 30px 20px;
-    gap: 25px;
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-title {
+    font-size: 1.5rem;
   }
 
   .footer-logo {
     width: 36px;
     height: 36px;
-  }
-
-  .footer-title {
-    font-size: 1.4rem;
-  }
-
-  .footer-header {
-    margin-left: 10px;
-  }
-
-  .footer-grid {
-    margin-left: 10px;
-    flex-direction: column;
-    gap: 22px;
-  }
-
-  .footer-column {
-    min-width: 100%;
-  }
-
-  .footer-social {
-    gap: 10px;
-    margin-top: 8px;
-  }
-
-  .footer-social a {
-    font-size: 1.2rem;
-  }
-
-  .footer-bottom {
-    font-size: 12.5px;
   }
 }
